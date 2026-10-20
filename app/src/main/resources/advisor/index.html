@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Health Advisor</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%230f766e'/%3E%3Cpath d='M26 14h12v12h12v12H38v12H26V38H14V26h12z' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+  :root {
+    --teal: #0f766e;
+    --teal-dark: #115e59;
+    --teal-soft: #e6f4f2;
+    --ink: #1f2933;
+    --muted: #52606d;
+    --line: #d5e3e1;
+    --page: #f5faf9;
+    --card: #ffffff;
+    --green: #166534;
+    --green-soft: #dcfce7;
+    --red: #b91c1c;
+    --red-soft: #fee2e2;
+    --grey: #475569;
+    --grey-soft: #e2e8f0;
+  }
+  * { box-sizing: border-box; }
+  html { font-size: 18px; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: var(--ink);
+    background: var(--page);
+    line-height: 1.45;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  header {
+    background: var(--teal);
+    color: #fff;
+    padding: 0.7rem 1.5rem;
+  }
+  .brand { display: flex; align-items: center; gap: 0.75rem; max-width: 1180px; margin: 0 auto; }
+  .brand svg { width: 2.4rem; height: 2.4rem; flex: none; }
+  .brand h1 { margin: 0; font-size: 1.6rem; font-weight: 650; letter-spacing: 0.01em; }
+  .brand p { margin: 0; font-size: 0.85rem; opacity: 0.9; }
+  main { flex: 1; width: 100%; max-width: 1180px; margin: 0 auto; padding: 1rem 1.5rem; }
+  .tabs { display: flex; gap: 0.4rem; border-bottom: 2px solid var(--line); margin-bottom: 1rem; }
+  .tab {
+    font: inherit;
+    font-weight: 600;
+    color: var(--muted);
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+  }
+  .tab[aria-selected="true"] { color: var(--teal-dark); border-bottom-color: var(--teal); }
+  .panel[hidden] { display: none; }
+  .ask-row { display: flex; gap: 0.8rem; align-items: flex-start; }
+  .field { flex: 1; }
+  label { display: block; font-weight: 600; margin-bottom: 0.3rem; }
+  textarea {
+    width: 100%;
+    font: inherit;
+    color: inherit;
+    border: 1px solid var(--line);
+    border-radius: 0.6rem;
+    padding: 0.6rem 0.8rem;
+    background: var(--card);
+    resize: vertical;
+    min-height: 4.6rem;
+  }
+  .counter { font-size: 0.8rem; color: var(--muted); text-align: right; margin-top: 0.15rem; }
+  .counter.full { color: var(--red); }
+  button.primary {
+    font: inherit;
+    font-weight: 650;
+    color: #fff;
+    background: var(--teal);
+    border: none;
+    border-radius: 0.6rem;
+    padding: 0.7rem 1.5rem;
+    margin-top: 1.75rem;
+    cursor: pointer;
+    min-width: 8rem;
+  }
+  button.primary:hover:not(:disabled) { background: var(--teal-dark); }
+  button.primary:disabled { opacity: 0.6; cursor: progress; }
+  :focus-visible { outline: 3px solid #f59e0b; outline-offset: 2px; }
+  .results { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem; }
+  .results.single { grid-template-columns: 1fr; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 0.8rem;
+    padding: 0.9rem 1.1rem;
+  }
+  .card h2 {
+    margin: 0 0 0.5rem;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+  }
+  .bubble {
+    display: flex;
+    gap: 0.6rem;
+    align-items: flex-start;
+  }
+  .bubble svg { width: 2rem; height: 2rem; flex: none; }
+  .bubble p {
+    margin: 0;
+    background: var(--teal-soft);
+    border-radius: 0 0.8rem 0.8rem 0.8rem;
+    padding: 0.6rem 0.9rem;
+  }
+  .reply { margin: 0 0 0.6rem; white-space: pre-wrap; }
+  .reply.stopped { text-decoration: line-through; color: var(--muted); }
+  .note { font-size: 0.85rem; font-weight: 600; color: var(--red); margin: -0.3rem 0 0.6rem; }
+  .badge {
+    display: inline-block;
+    font-weight: 700;
+    font-size: 0.9rem;
+    border-radius: 999px;
+    padding: 0.15rem 0.8rem;
+  }
+  .badge.LET_THROUGH { color: var(--green); background: var(--green-soft); }
+  .badge.STOPPED { color: var(--red); background: var(--red-soft); }
+  .badge.UNAVAILABLE { color: var(--grey); background: var(--grey-soft); }
+  .reason { margin: 0.4rem 0; }
+  .timing { font-size: 0.85rem; color: var(--muted); margin: 0; }
+  .error { color: var(--red); margin: 0; }
+  .placeholder { color: var(--muted); margin: 0; }
+  footer {
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--muted);
+    padding: 0.6rem 1rem 0.9rem;
+  }
+  @media (max-width: 760px) {
+    .ask-row { flex-direction: column; align-items: stretch; }
+    button.primary { margin-top: 0; }
+    .results { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <svg viewBox="0 0 64 64" aria-hidden="true">
+      <circle cx="32" cy="32" r="30" fill="#fff"/>
+      <path d="M26 12h12v12h12v12H38v12H26V36H14V24h12z" fill="#0f766e"/>
+      <path d="M44 41c2.4-2.4 6.2-.6 6.2 2.6 0 2.7-3.2 5.1-6.2 7.4-3-2.3-6.2-4.7-6.2-7.4 0-3.2 3.8-5 6.2-2.6z" fill="#e11d48"/>
+    </svg>
+    <div>
+      <h1>Health Advisor</h1>
+      <p>Tell us how you feel. We'll help you find the right next step.</p>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" id="tab-ask" aria-controls="panel-ask" aria-selected="true">Ask the advisor</button>
+    <button class="tab" role="tab" id="tab-check" aria-controls="panel-check" aria-selected="false" tabindex="-1">🪳Interactive guardrail tester</button>
+  </div>
+
+  <section class="panel" id="panel-ask" role="tabpanel" aria-labelledby="tab-ask">
+    <form class="ask-row" id="ask-form">
+      <div class="field">
+        <label for="question">What's troubling you?</label>
+        <textarea id="question" maxlength="500" rows="3" placeholder="I'm in terrible pain... help me!"></textarea>
+        <div class="counter" id="question-counter">0 / 500</div>
+      </div>
+      <button class="primary" type="submit" id="ask-button" disabled>Ask</button>
+    </form>
+    <div class="results" id="ask-results">
+      <div class="card">
+        <h2>What the patient sees</h2>
+        <div id="patient-view"><p class="placeholder">The advisor's answer appears here.</p></div>
+      </div>
+      <div class="card">
+        <h2>Behind the scenes</h2>
+        <div id="ask-behind"><p class="placeholder">The model's reply and the guardrail's verdict appear here.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="panel-check" role="tabpanel" aria-labelledby="tab-check" hidden>
+    <form class="ask-row" id="check-form">
+      <div class="field">
+        <label for="advice">Advice to check</label>
+        <textarea id="advice" maxlength="500" rows="3" placeholder="Type a reply the advisor might send…"></textarea>
+        <div class="counter" id="advice-counter">0 / 500</div>
+      </div>
+      <button class="primary" type="submit" id="check-button" disabled>Check</button>
+    </form>
+    <div class="results single">
+      <div class="card">
+        <h2>The guardrail's verdict</h2>
+        <div id="check-result"><p class="placeholder">Would this advice reach the patient? The verdict appears here.</p></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>Fictional workshop demo — not medical advice.</footer>
+
+<script>
+  const LABELS = { LET_THROUGH: "Let through", STOPPED: "Stopped", UNAVAILABLE: "Couldn't check" };
+
+  function el(tag, className, text) {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text !== undefined) node.textContent = text;
+    return node;
+  }
+
+  function seconds(ms) {
+    return (ms / 1000).toFixed(1) + " s";
+  }
+
+  function verdictNodes(verdict) {
+    return [
+      el("span", "badge " + verdict.state, LABELS[verdict.state]),
+      el("p", "reason", verdict.reason),
+    ];
+  }
+
+  function bubble(text) {
+    const wrap = el("div", "bubble");
+    wrap.innerHTML = '<svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="30" fill="#0f766e"/>'
+      + '<path d="M26 14h12v12h12v12H38v12H26V38H14V26h12z" fill="#fff"/></svg>';
+    wrap.append(el("p", "", text));
+    return wrap;
+  }
+
+  async function post(path, body) {
+    const response = await fetch(path, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const data = await response.json().catch(() => ({ error: "The app answered " + response.status + "." }));
+    if (!response.ok) throw new Error(data.error || "The app answered " + response.status + ".");
+    return data;
+  }
+
+  // Tabs
+  const tabs = [document.getElementById("tab-ask"), document.getElementById("tab-check")];
+  function select(tab) {
+    for (const t of tabs) {
+      const selected = t === tab;
+      t.setAttribute("aria-selected", selected);
+      t.tabIndex = selected ? 0 : -1;
+      document.getElementById(t.getAttribute("aria-controls")).hidden = !selected;
+    }
+  }
+  for (const tab of tabs) {
+    tab.addEventListener("click", () => {
+      select(tab);
+      document.getElementById(tab === tabs[0] ? "question" : "advice").focus();
+    });
+    tab.addEventListener("keydown", (e) => {
+      if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+      const next = tabs[(tabs.indexOf(tab) + 1) % tabs.length];
+      select(next);
+      next.focus();
+    });
+  }
+
+  // A form: textarea with counter, a button that can't be pressed twice, Ctrl/Cmd+Enter to submit.
+  function wire(formId, inputId, counterId, buttonId, idleLabel, busyLabel, run) {
+    const form = document.getElementById(formId);
+    const input = document.getElementById(inputId);
+    const counter = document.getElementById(counterId);
+    const button = document.getElementById(buttonId);
+    let busy = false;
+    const update = () => {
+      const length = input.value.length;
+      counter.textContent = length + " / 500";
+      counter.classList.toggle("full", length >= 500);
+      button.disabled = busy || input.value.trim().length === 0;
+    };
+    input.addEventListener("input", update);
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) form.requestSubmit();
+    });
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (button.disabled) return;
+      busy = true;
+      button.textContent = busyLabel;
+      update();
+      try {
+        await run(input.value.trim());
+      } finally {
+        busy = false;
+        button.textContent = idleLabel;
+        update();
+      }
+    });
+    update();
+  }
+
+  wire("ask-form", "question", "question-counter", "ask-button", "Ask", "Asking…", async (question) => {
+    const patient = document.getElementById("patient-view");
+    const behind = document.getElementById("ask-behind");
+    patient.replaceChildren(el("p", "placeholder", "The advisor is thinking…"));
+    behind.replaceChildren(el("p", "placeholder", "Asking the model, then the guardrail…"));
+    try {
+      const r = await post("/api/ask", { question });
+      patient.replaceChildren(bubble(r.patientView));
+      if (r.adviceError) {
+        behind.replaceChildren(
+          el("p", "error", r.adviceError),
+          el("p", "timing", "advice " + seconds(r.adviceLatencyMs)));
+        return;
+      }
+      const shown = r.verdict.state === "LET_THROUGH";
+      const nodes = [el("p", "reply" + (shown ? "" : " stopped"), r.advice)];
+      if (r.verdict.state === "STOPPED") nodes.push(el("p", "note", "Stopped by the guardrail"));
+      if (r.verdict.state === "UNAVAILABLE") nodes.push(el("p", "note", "Held back: the guardrail couldn't check it"));
+      nodes.push(...verdictNodes(r.verdict));
+      nodes.push(el("p", "timing", "advice " + seconds(r.adviceLatencyMs) + " · guardrail " + seconds(r.verdict.latencyMs)));
+      behind.replaceChildren(...nodes);
+    } catch (error) {
+      patient.replaceChildren(el("p", "placeholder", "No answer."));
+      behind.replaceChildren(el("p", "error", error.message));
+    }
+  });
+
+  wire("check-form", "advice", "advice-counter", "check-button", "Check", "Checking…", async (advice) => {
+    const result = document.getElementById("check-result");
+    result.replaceChildren(el("p", "placeholder", "The guardrail is checking…"));
+    try {
+      const r = await post("/api/check", { advice });
+      result.replaceChildren(
+        ...verdictNodes(r.verdict),
+        el("p", "timing", "checked in " + seconds(r.verdict.latencyMs)));
+    } catch (error) {
+      result.replaceChildren(el("p", "error", error.message));
+    }
+  });
+</script>
+</body>
+</html>
