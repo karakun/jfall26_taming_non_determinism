@@ -25,4 +25,63 @@ tasks.withType<JavaCompile>().configureEach {
 
 tasks.test {
     useJUnitPlatform()
+    // Punit explains a refused or failed test in the exception message, which Gradle otherwise hides.
+    testLogging {
+        events("passed", "skipped", "failed")
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+        showStackTraces = false
+        showCauses = false
+    }
+}
+
+// Everything participants work with sits in one folder, guardrail/: the test class, the service
+// definition, the system prompt and the contracts. Gradle reads the class and its files from there.
+sourceSets {
+    test {
+        java.setSrcDirs(listOf("."))
+        java.include("guardrail/**")
+        resources.setSrcDirs(listOf("."))
+        resources.include("guardrail/**/*.yaml", "guardrail/**/*.txt")
+        resources.exclude("guardrail/punit-output/**")
+    }
+}
+
+// What Punit writes for participants (baselines, the report) lands in guardrail/punit-output/,
+// next to the files it belongs to.
+punit {
+    baselineDir.set("guardrail/punit-output/baselines")
+}
+
+tasks.named<org.mavai.punit.gradle.PUnitReportTask>("punitReport") {
+    outputDir.set(layout.projectDirectory.dir("guardrail/punit-output/report"))
+}
+
+// .env holds the workshop key and is never committed (see .env.example). Its settings go into every
+// test JVM, including the measurement's; variables already set in the environment win.
+val dotEnv: Map<String, String> = file(".env").takeIf { it.isFile }?.readLines().orEmpty()
+    .map { it.trim() }
+    .filter { it.isNotEmpty() && !it.startsWith("#") && it.contains("=") }
+    .associate { it.substringBefore("=").trim() to it.substringAfter("=").trim() }
+
+tasks.withType<Test>().configureEach {
+    dotEnv.forEach { (key, value) ->
+        if (System.getenv(key) == null) environment(key, value)
+    }
+}
+
+// mavaiCheck runs inside the Gradle daemon, so it gets the settings as system properties instead.
+// They are set or cleared on every run, because the daemon outlives the build.
+val gatewayProperties = mapOf(
+    "MAVAI_LLM_ENDPOINT" to "mavai.llm.endpoint",
+    "MAVAI_LLM_API_KEY" to "mavai.llm.api-key",
+)
+
+tasks.withType<org.mavai.punit.gradle.PUnitCheckTask>().configureEach {
+    doFirst {
+        gatewayProperties.forEach { (variable, property) ->
+            val value = dotEnv[variable]
+            if (System.getenv(variable) == null && value != null) System.setProperty(property, value)
+            else System.clearProperty(property)
+        }
+    }
 }

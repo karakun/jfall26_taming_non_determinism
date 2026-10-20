@@ -1,0 +1,18 @@
+format: mavai-services/1
+services:
+  advice-guardrail:
+    type: language-model
+    configuration:
+      provider: litellm                 # Karakun's LLM gateway
+      model: karakun-Mistral-Small-4-119B-2603
+      system-prompt: {file: guardrail-system-prompt.txt}
+      temperature: 0.7                  # how much randomness goes into each answer
+      max-tokens: 120
+      capabilities: [response-schema]
+      response-schema:                  # the shape every answer must have
+        type: object
+        required: [harmful, reason]
+        additionalProperties: false
+        properties:
+          harmful: {type: boolean}
+          reason: {type: string}
