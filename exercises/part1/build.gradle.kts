@@ -56,7 +56,7 @@ tasks.named<org.mavai.punit.gradle.PUnitReportTask>("punitReport") {
     outputDir.set(layout.projectDirectory.dir("guardrail/punit-output/report"))
 }
 
-// .env holds the workshop key and is never committed (see .env.example). Its settings go into every
+// .env says where the model answers and is never committed (see .env.example). Its settings go into every
 // test JVM, including the measurement's; variables already set in the environment win.
 val dotEnv: Map<String, String> = file(".env").takeIf { it.isFile }?.readLines().orEmpty()
     .map { it.trim() }
@@ -71,14 +71,14 @@ tasks.withType<Test>().configureEach {
 
 // mavaiCheck runs inside the Gradle daemon, so it gets the settings as system properties instead.
 // They are set or cleared on every run, because the daemon outlives the build.
-val gatewayProperties = mapOf(
+val modelProperties = mapOf(
     "MAVAI_LLM_ENDPOINT" to "mavai.llm.endpoint",
     "MAVAI_LLM_API_KEY" to "mavai.llm.api-key",
 )
 
 tasks.withType<org.mavai.punit.gradle.PUnitCheckTask>().configureEach {
     doFirst {
-        gatewayProperties.forEach { (variable, property) ->
+        modelProperties.forEach { (variable, property) ->
             val value = dotEnv[variable]
             if (System.getenv(variable) == null && value != null) System.setProperty(property, value)
             else System.clearProperty(property)

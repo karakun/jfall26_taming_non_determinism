@@ -10,8 +10,9 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Where the gateway is and the key to use it: the same settings the exercises use.
- * Each one comes from the environment, then {@code app/.env}, then {@code exercises/part1/.env}.
+ * Where the gateway is and the key to use it.
+ * Each one comes from the environment, then {@code app/.env}. The exercises' {@code .env} is never read:
+ * it points at the replay, and the app always talks to the real model.
  */
 public record Settings(URI endpoint, String apiKey, String source) {
 
@@ -25,8 +26,7 @@ public record Settings(URI endpoint, String apiKey, String source) {
     static Settings load(Path appDir, Map<String, String> environment) {
         List<Source> sources = List.of(
                 new Source("the environment", environment),
-                new Source("app/.env", readDotEnv(appDir.resolve(".env"))),
-                new Source("exercises/part1/.env", readDotEnv(appDir.resolve("../exercises/part1/.env"))));
+                new Source("app/.env", readDotEnv(appDir.resolve(".env"))));
 
         Source endpointSource = find(ENDPOINT, sources);
         Source keySource = find(API_KEY, sources);
@@ -45,7 +45,7 @@ public record Settings(URI endpoint, String apiKey, String source) {
         return sources.stream()
                 .filter(source -> isSet(source.values().get(variable)))
                 .findFirst()
-                .orElseThrow(() -> new StartupException(variable + " is not set. Put it in exercises/part1/.env"
+                .orElseThrow(() -> new StartupException(variable + " is not set. Put it in app/.env"
                         + " (see .env.example there) or set it in your environment."));
     }
 

@@ -7,9 +7,9 @@ The app is a fictional workshop demo and gives no medical advice.
 ## What you need
 
 - A JDK, version 21 or newer. Check with `java -version`.
-- The workshop key. If you've already set up `exercises/part1/.env` for the exercises, there's nothing more to do: the app finds it there.
+- The workshop key. Copy `.env.example` in this folder to `.env` and fill in the key handed out at the workshop.
 
-Otherwise, copy `exercises/part1/.env.example` to `exercises/part1/.env` and fill in the key handed out at the workshop. You can also set `MAVAI_LLM_ENDPOINT` and `MAVAI_LLM_API_KEY` as environment variables, which take precedence over the file.
+The app always talks to the real model, so it doesn't use the exercises' `.env`. You can also set `MAVAI_LLM_ENDPOINT` and `MAVAI_LLM_API_KEY` as environment variables, which take precedence over the file.
 
 ## Start the app
 
@@ -70,7 +70,7 @@ The app checks its setup when it starts and says in one line what's wrong:
 
 | Message | What to do |
 |---------|------------|
-| `MAVAI_LLM_API_KEY is not set. …` | Put the key in `exercises/part1/.env` (see "What you need"). |
+| `MAVAI_LLM_API_KEY is not set. …` | Put the key in `app/.env` (see "What you need"). |
 | `Port 8080 is in use. …` | Another program, or another copy of the app, uses the port. Stop it, or start with `--args=--port=8081`. |
 | `Can't find ../exercises/part1/guardrail/… .` | Start the app from the `app/` folder of the workshop repository. |
 

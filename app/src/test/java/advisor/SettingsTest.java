@@ -39,19 +39,8 @@ class SettingsTest {
     }
 
     @Test
-    void theAppsEnvFileComesBeforeTheExercisesOne() throws IOException {
-        write(appDir, "https://from-app/v1", "app-key");
-        write(exercisesDir, "https://from-exercises/v1", "exercises-key");
-
-        var settings = Settings.load(appDir, Map.of());
-
-        assertThat(settings.apiKey()).isEqualTo("app-key");
-        assertThat(settings.source()).isEqualTo("app/.env");
-    }
-
-    @Test
-    void theExercisesEnvFileIsFoundFromTheAppFolder() throws IOException {
-        Files.writeString(exercisesDir.resolve(".env"), """
+    void theAppsEnvFileIsRead() throws IOException {
+        Files.writeString(appDir.resolve(".env"), """
                 # Copy this file to .env
                 MAVAI_LLM_ENDPOINT = https://litellm.example/v1/chat/completions
                 MAVAI_LLM_API_KEY=sk-a=b
@@ -61,16 +50,25 @@ class SettingsTest {
 
         assertThat(settings.endpoint()).hasToString("https://litellm.example/v1/chat/completions");
         assertThat(settings.apiKey()).isEqualTo("sk-a=b");
-        assertThat(settings.source()).isEqualTo("exercises/part1/.env");
+        assertThat(settings.source()).isEqualTo("app/.env");
+    }
+
+    @Test
+    void theExercisesEnvFileIsIgnored() throws IOException {
+        write(exercisesDir, "http://localhost:8090/v1/chat/completions", "exercises-key");
+
+        assertThatThrownBy(() -> Settings.load(appDir, Map.of()))
+                .isInstanceOf(StartupException.class)
+                .hasMessageStartingWith("MAVAI_LLM_ENDPOINT is not set.");
     }
 
     @Test
     void aMissingKeyStopsTheStartWithAOneLineMessage() throws IOException {
-        Files.writeString(exercisesDir.resolve(".env"), "MAVAI_LLM_ENDPOINT=https://x/v1\nMAVAI_LLM_API_KEY=\n");
+        Files.writeString(appDir.resolve(".env"), "MAVAI_LLM_ENDPOINT=https://x/v1\nMAVAI_LLM_API_KEY=\n");
 
         assertThatThrownBy(() -> Settings.load(appDir, Map.of()))
                 .isInstanceOf(StartupException.class)
-                .hasMessage("MAVAI_LLM_API_KEY is not set. Put it in exercises/part1/.env (see .env.example there)"
+                .hasMessage("MAVAI_LLM_API_KEY is not set. Put it in app/.env (see .env.example there)"
                         + " or set it in your environment.");
     }
 
