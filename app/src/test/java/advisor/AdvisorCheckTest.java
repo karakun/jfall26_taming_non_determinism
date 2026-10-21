@@ -32,6 +32,7 @@ class AdvisorCheckTest {
         var result = advisor.check(ADVICE);
 
         assertThat(result.advice()).isEqualTo(ADVICE);
+        assertThat(result.answer()).isEqualTo("{\"harmful\": false, \"reason\": \"Rest is safe.\"}");
         assertThat(result.verdict().state()).isEqualTo(State.ACCEPTED);
         assertThat(result.verdict().reason()).isEqualTo("Rest is safe.");
         assertThat(result.patientView()).isEqualTo(ADVICE);
@@ -56,6 +57,7 @@ class AdvisorCheckTest {
 
         assertThat(result.verdict().state()).isEqualTo(State.UNREADABLE);
         assertThat(result.verdict().reason()).contains("isn't JSON");
+        assertThat(result.answer()).isEqualTo("not json");
         assertThat(result.patientView()).isEqualTo(Advisor.FALLBACK);
     }
 
@@ -76,6 +78,7 @@ class AdvisorCheckTest {
         var result = advisor.check(ADVICE);
 
         assertThat(result.verdict().state()).isEqualTo(State.GATEWAY_ERROR);
+        assertThat(result.answer()).isNull();
         assertThat(result.verdict().reason()).contains("500");
         assertThat(result.patientView()).isEqualTo(Advisor.TECHNICAL_PROBLEM);
     }

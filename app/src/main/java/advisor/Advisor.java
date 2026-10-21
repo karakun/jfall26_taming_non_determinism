@@ -47,7 +47,7 @@ public class Advisor {
         GatewayResult result = gateway.complete(guardrail.model(), guardrail.systemPrompt(), advice,
                 guardrail.temperature(), guardrail.maxTokens(), guardrail.responseSchema());
         Verdict verdict = verdictFrom(result);
-        return new CheckResult(advice, verdict, patientView(advice, verdict));
+        return new CheckResult(advice, result.content(), verdict, patientView(advice, verdict));
     }
 
     /** Only accepted advice reaches the patient; an infrastructure failure is reported as one. */
@@ -94,7 +94,8 @@ public class Advisor {
     public record AdviceResult(String question, String advice, long latencyMs, String error, String patientView) {
     }
 
-    public record CheckResult(String advice, Verdict verdict, String patientView) {
+    /** {@code answer} is LLM 2's answer as it came (JSON when all went well), or null if the call failed. */
+    public record CheckResult(String advice, String answer, Verdict verdict, String patientView) {
     }
 
     /** The advice model: the guardrail's model with the app's own short prompt. */

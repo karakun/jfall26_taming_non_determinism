@@ -151,6 +151,16 @@
   .toggle:disabled { opacity: 0.55; cursor: default; }
   .edited { color: var(--amber); }
 
+  /* LLM 2's reply as text (verdict and reason) or as the JSON it came as. */
+  #llm2-reply { display: flex; flex-direction: column; }
+  #verdict, #verdict-json { flex: 1; }
+  #verdict-json { margin: 0; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 0.78rem; white-space: pre-wrap; overflow-wrap: anywhere; background: var(--slate-soft); border-radius: 0.5rem; padding: 0.4rem 0.6rem; }
+  #verdict-json:empty::before { content: "No JSON from LLM 2 yet"; color: var(--muted); font-family: system-ui, sans-serif; font-style: italic; }
+  #llm2-reply.json #verdict, #llm2-reply:not(.json) #verdict-json { display: none; }
+  .view-switch { align-self: flex-end; display: flex; background: var(--slate-soft); border: 1px solid var(--line); border-radius: 999px; padding: 0.1rem; margin-top: 0.4rem; }
+  .view-switch button { font: inherit; font-size: 0.75rem; font-weight: 650; color: var(--muted); background: none; border: none; border-radius: 999px; padding: 0.15rem 0.7rem; cursor: pointer; }
+  .view-switch button[aria-pressed="true"] { background: var(--teal); color: #fff; }
+
   .badge { display: inline-block; font-weight: 700; font-size: 0.85rem; border-radius: 999px; padding: 0.1rem 0.75rem; }
   .badge.ACCEPTED { color: var(--green); background: var(--green-soft); }
   .badge.REJECTED { color: var(--red); background: var(--red-soft); }
@@ -277,12 +287,17 @@
 
       <div class="right" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12h17M14 6l6 6-6 6"/></svg></div>
 
-      <section class="node" aria-labelledby="llm2-reply-head">
+      <section class="node" id="llm2-reply" aria-labelledby="llm2-reply-head">
         <div class="head-row">
           <h2 class="node-head" id="llm2-reply-head">LLM 2's reply</h2>
           <span class="timing" id="llm2-timing"></span>
         </div>
         <div id="verdict"><p class="placeholder">Accept or reject?</p></div>
+        <pre id="verdict-json"></pre>
+        <div class="view-switch" role="group" aria-label="Show LLM 2's reply as">
+          <button type="button" data-view="text" aria-pressed="true">Text</button>
+          <button type="button" data-view="json" aria-pressed="false">JSON</button>
+        </div>
       </section>
     </div>
     <div class="down from-llm2" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3v17M6 14l6 6 6-6"/></svg></div>
@@ -313,6 +328,7 @@
   const llm1Problem = document.getElementById("llm1-problem");
   const llm2Timing = document.getElementById("llm2-timing");
   const verdictView = document.getElementById("verdict");
+  const verdictJson = document.getElementById("verdict-json");
   const patientView = document.getElementById("patient-view");
 
   const PLACEHOLDER = reply.placeholder;
@@ -382,6 +398,29 @@
     patientView.replaceChildren(technical ? withIcon("notice", WARNING_ICON, text) : withIcon("bubble", ADVISOR_ICON, text));
   }
 
+  // LLM 2's reply as JSON: pretty-printed if it parses, otherwise exactly as it came.
+  function showAnswer(answer) {
+    if (answer === null || answer === undefined) {
+      verdictJson.textContent = "";
+      return;
+    }
+    try {
+      verdictJson.textContent = JSON.stringify(JSON.parse(answer), null, 2);
+    } catch (e) {
+      verdictJson.textContent = answer;
+    }
+  }
+
+  // Text or JSON view of LLM 2's reply; the choice stays for later checks.
+  const llm2Reply = document.getElementById("llm2-reply");
+  const viewButtons = document.querySelectorAll(".view-switch button");
+  for (const button of viewButtons) {
+    button.addEventListener("click", () => {
+      llm2Reply.classList.toggle("json", button.dataset.view === "json");
+      for (const other of viewButtons) other.setAttribute("aria-pressed", other === button);
+    });
+  }
+
   function showVerdict(verdict) {
     verdictView.replaceChildren(
       el("span", "badge " + verdict.state, LABELS[verdict.state]),
@@ -390,6 +429,7 @@
   }
 
   function showProblem(message) {
+    verdictJson.textContent = "";
     verdictView.replaceChildren(el("p", "error", message));
     showPatient(message, true);
   }
@@ -407,12 +447,14 @@
 
   // LLM 2: the guardrail judges whatever is in the reply box, and the app decides what the patient sees.
   async function checkReply() {
+    verdictJson.textContent = "";
     verdictView.replaceChildren(el("p", "placeholder", "LLM 2 is judging…"));
     llm2Timing.textContent = "";
     patientView.replaceChildren(el("p", "placeholder", "The advisor is thinking…"));
     try {
       const result = await post("/api/check", { advice: reply.value.trim() });
       showVerdict(result.verdict);
+      showAnswer(result.answer);
       showPatient(result.patientView, result.verdict.state === "GATEWAY_ERROR");
     } catch (error) {
       showProblem(error.message);
@@ -429,6 +471,7 @@
     reply.value = "";
     reply.placeholder = "LLM 1 is writing…";
     update();
+    verdictJson.textContent = "";
     verdictView.replaceChildren(el("p", "placeholder", "Waiting for LLM 1's reply"));
     patientView.replaceChildren(el("p", "placeholder", "The advisor is thinking…"));
     let advice;
@@ -446,6 +489,7 @@
       llm1Problem.replaceChildren(
         el("span", "badge GATEWAY_ERROR", LABELS.GATEWAY_ERROR),
         el("p", "reason", advice.error));
+      verdictJson.textContent = "";
       verdictView.replaceChildren(el("p", "placeholder", "Nothing to judge"));
       showPatient(advice.patientView, true);
       return;
@@ -456,6 +500,7 @@
     update();
     // Paused (transparent mode only): the reply waits in the box until "Check this reply". The patient's view never pauses.
     if (pause.checked && document.body.classList.contains("transparent")) {
+      verdictJson.textContent = "";
       verdictView.replaceChildren(el("p", "placeholder", "Press “Check this reply”"));
       patientView.replaceChildren(el("p", "placeholder", "The reply is waiting for the guardrail."));
       return;
@@ -466,6 +511,7 @@
   // A changed reply hasn't been judged yet.
   reply.addEventListener("input", () => {
     update();
+    verdictJson.textContent = "";
     verdictView.replaceChildren(el("p", "placeholder", "Press “Check this reply”"));
     llm1Timing.textContent = "";
     llm2Timing.textContent = "";
