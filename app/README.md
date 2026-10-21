@@ -37,8 +37,14 @@ To stop the app, press Ctrl+C in the terminal.
 
 ## Use the app
 
-- **Ask the advisor**: type what's troubling the patient. The page shows what the patient would see (the model's reply, or a safe fallback if the guardrail stopped it) and, behind the scenes, the model's reply, the guardrail's verdict and reason, and how long each call took.
-- **Interactive guardrail tester**: a developer tool, not part of the app itself. Type a reply as the advisor might send it, and see whether the guardrail would let it through, and why. It skips the advice model, which rarely produces harmful advice on request.
+Type what's troubling the patient and press **Ask**. The switch at the top right chooses how much you see:
+
+- **Opaque**: the app as a patient would see it. The answer is the advisor's reply, or a safe fallback if the guardrail rejected it.
+- **Transparent**: what happens inside. The advice model (LLM 1) gets a system prompt and the patient's question, and its reply lands in an editable box. The guardrail sends that reply with its own system prompt to a second model (LLM 2), which accepts or rejects it, with a reason. Below that is what the patient sees, and each step shows how long it took.
+
+In transparent mode you can take LLM 1's place: change its reply, or write your own, and press **Check this reply** to see what the guardrail makes of it. This is useful because the advice model rarely produces harmful advice on request. The switch next to the button pauses the flow before the guardrail and is on by default. Turn it off to send LLM 1's reply straight to the guardrail, as the real app does. Opaque mode never pauses.
+
+The switch only changes what you see: the last run stays on screen in both modes. If the gateway or the network fails, the patient is told that the app has a technical problem, and transparent mode shows the cause.
 
 Every submission makes fresh calls to the model, so submitting the same text twice can give different results. Ctrl+Enter (Cmd+Enter on a Mac) submits.
 

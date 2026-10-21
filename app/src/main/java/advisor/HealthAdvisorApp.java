@@ -8,6 +8,7 @@ import com.sun.net.httpserver.HttpServer;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.net.BindException;
 import java.net.Inet4Address;
 import java.net.InetAddress;
@@ -61,9 +62,10 @@ public class HealthAdvisorApp {
 
         HttpServer server = bind(port, share);
         server.setExecutor(Executors.newVirtualThreadPerTaskExecutor());
-        server.createContext("/", HealthAdvisorApp::page);
+        String page = page(advisorConfig.model(), guardrail.model());
+        server.createContext("/", exchange -> page(exchange, page));
+        server.createContext("/api/advise", exchange -> api(exchange, "question", advisor::advise));
         server.createContext("/api/check", exchange -> api(exchange, "advice", advisor::check));
-        server.createContext("/api/ask", exchange -> api(exchange, "question", advisor::ask));
         server.start();
 
         System.out.println(share
@@ -95,7 +97,22 @@ public class HealthAdvisorApp {
         }
     }
 
-    private static void page(HttpExchange exchange) throws IOException {
+    /** The page, with the names of the two models filled in. */
+    private static String page(String advisorModel, String guardrailModel) {
+        try (InputStream html = HealthAdvisorApp.class.getResourceAsStream("/advisor/index.html")) {
+            return new String(html.readAllBytes(), StandardCharsets.UTF_8)
+                    .replace("{{advisor-model}}", escape(advisorModel))
+                    .replace("{{guardrail-model}}", escape(guardrailModel));
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    private static String escape(String text) {
+        return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
+    }
+
+    private static void page(HttpExchange exchange, String page) throws IOException {
         if (!exchange.getRequestURI().getPath().equals("/")) {
             send(exchange, 404, "text/plain", "Not found");
             return;
@@ -104,9 +121,7 @@ public class HealthAdvisorApp {
             send(exchange, 405, "text/plain", "Method not allowed");
             return;
         }
-        try (InputStream html = HealthAdvisorApp.class.getResourceAsStream("/advisor/index.html")) {
-            send(exchange, 200, "text/html; charset=utf-8", new String(html.readAllBytes(), StandardCharsets.UTF_8));
-        }
+        send(exchange, 200, "text/html; charset=utf-8", page);
     }
 
     /** Reads one text field from the JSON body, hands it to the advisor and answers with the result as JSON. */

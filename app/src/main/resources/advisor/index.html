@@ -21,6 +21,12 @@
     --red-soft: #fee2e2;
     --grey: #475569;
     --grey-soft: #e2e8f0;
+    --amber: #92400e;
+    --amber-soft: #fef3c7;
+    --slate: #334155;
+    --slate-soft: #f1f5f9;
+    --violet: #5b21b6;
+    --violet-soft: #f3effd;
   }
   * { box-sizing: border-box; }
   html { font-size: 18px; }
@@ -34,44 +40,50 @@
     display: flex;
     flex-direction: column;
   }
-  header {
-    background: var(--teal);
-    color: #fff;
-    padding: 0.7rem 1.5rem;
-  }
-  .brand { display: flex; align-items: center; gap: 0.75rem; max-width: 1180px; margin: 0 auto; }
+  header { background: var(--teal); color: #fff; padding: 0.6rem 1.5rem; }
+  .bar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; max-width: 1240px; margin: 0 auto; }
+  .brand { display: flex; align-items: center; gap: 0.75rem; }
   .brand svg { width: 2.4rem; height: 2.4rem; flex: none; }
   .brand h1 { margin: 0; font-size: 1.6rem; font-weight: 650; letter-spacing: 0.01em; }
   .brand p { margin: 0; font-size: 0.85rem; opacity: 0.9; }
-  main { flex: 1; width: 100%; max-width: 1180px; margin: 0 auto; padding: 1rem 1.5rem; }
-  .tabs { display: flex; gap: 0.4rem; border-bottom: 2px solid var(--line); margin-bottom: 1rem; }
-  .tab {
+
+  /* The mode switch: opaque (what the patient sees) or transparent (what happens inside). */
+  .mode { display: flex; flex-direction: column; align-items: flex-end; gap: 0.2rem; }
+  .mode-caption { font-size: 0.75rem; opacity: 0.9; }
+  .switch { display: flex; background: rgba(255, 255, 255, 0.15); border-radius: 999px; padding: 0.2rem; }
+  .switch button {
     font: inherit;
-    font-weight: 600;
-    color: var(--muted);
+    font-size: 0.85rem;
+    font-weight: 650;
+    color: #fff;
     background: none;
     border: none;
-    border-bottom: 3px solid transparent;
-    margin-bottom: -2px;
-    padding: 0.5rem 1rem;
+    border-radius: 999px;
+    padding: 0.3rem 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
     cursor: pointer;
   }
-  .tab[aria-selected="true"] { color: var(--teal-dark); border-bottom-color: var(--teal); }
-  .panel[hidden] { display: none; }
+  .switch button svg { width: 1.1rem; height: 1.1rem; }
+  .switch button[aria-pressed="true"] { background: #fff; color: var(--teal-dark); }
+
+  main { flex: 1; width: 100%; max-width: 1240px; margin: 0 auto; padding: 0.7rem 1.5rem 0.5rem; }
   .ask-row { display: flex; gap: 0.8rem; align-items: flex-start; }
   .field { flex: 1; }
-  label { display: block; font-weight: 600; margin-bottom: 0.3rem; }
+  label, .label { display: block; font-weight: 600; margin-bottom: 0.3rem; }
   textarea {
     width: 100%;
     font: inherit;
     color: inherit;
     border: 1px solid var(--line);
     border-radius: 0.6rem;
-    padding: 0.6rem 0.8rem;
+    padding: 0.5rem 0.8rem;
     background: var(--card);
     resize: vertical;
-    min-height: 4.6rem;
   }
+  #question { min-height: 3.2rem; }
+  textarea[readonly] { background: var(--slate-soft); }
   .counter { font-size: 0.8rem; color: var(--muted); text-align: right; margin-top: 0.15rem; }
   .counter.full { color: var(--red); }
   button.primary {
@@ -81,135 +93,231 @@
     background: var(--teal);
     border: none;
     border-radius: 0.6rem;
-    padding: 0.7rem 1.5rem;
-    margin-top: 1.75rem;
+    padding: 0.65rem 1.5rem;
     cursor: pointer;
-    min-width: 8rem;
   }
+  #ask-button { margin-top: 1.75rem; min-width: 8rem; }
   button.primary:hover:not(:disabled) { background: var(--teal-dark); }
-  button.primary:disabled { opacity: 0.6; cursor: progress; }
+  button.primary:disabled { opacity: 0.55; cursor: default; }
   :focus-visible { outline: 3px solid #f59e0b; outline-offset: 2px; }
-  .results { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem; }
-  .results.single { grid-template-columns: 1fr; }
+
   .card {
     background: var(--card);
     border: 1px solid var(--line);
     border-radius: 0.8rem;
-    padding: 0.9rem 1.1rem;
+    padding: 0.8rem 1.1rem;
   }
-  .card h2 {
+  .card h2, .node-head {
     margin: 0 0 0.5rem;
     font-size: 0.8rem;
+    font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.06em;
     color: var(--muted);
   }
-  .bubble {
-    display: flex;
-    gap: 0.6rem;
-    align-items: flex-start;
-  }
-  .bubble svg { width: 2rem; height: 2rem; flex: none; }
-  .bubble p {
-    margin: 0;
-    background: var(--teal-soft);
-    border-radius: 0 0.8rem 0.8rem 0.8rem;
-    padding: 0.6rem 0.9rem;
-  }
-  .reply { margin: 0 0 0.6rem; white-space: pre-wrap; }
-  .reply.stopped { text-decoration: line-through; color: var(--muted); }
-  .note { font-size: 0.85rem; font-weight: 600; color: var(--red); margin: -0.3rem 0 0.6rem; }
-  .badge {
-    display: inline-block;
-    font-weight: 700;
-    font-size: 0.9rem;
-    border-radius: 999px;
-    padding: 0.15rem 0.8rem;
-  }
-  .badge.LET_THROUGH { color: var(--green); background: var(--green-soft); }
-  .badge.STOPPED { color: var(--red); background: var(--red-soft); }
-  .badge.UNAVAILABLE { color: var(--grey); background: var(--grey-soft); }
-  .reason { margin: 0.4rem 0; }
-  .timing { font-size: 0.85rem; color: var(--muted); margin: 0; }
-  .error { color: var(--red); margin: 0; }
+
+  /* Transparent mode: the flow between the question and the patient's view. */
+  body.opaque .transparent-only { display: none; }
+  /* Model, reply, model, reply. The down arrows share the flow's columns: the question feeds LLM 1, LLM 2's reply feeds the patient. */
+  .flow, .down { display: grid; grid-template-columns: 1fr 1.4rem 1.25fr 1.4rem 1fr 1.4rem 1fr; }
+  .down { color: var(--muted); height: 1.2rem; }
+  .down svg { width: 1.2rem; height: 1.2rem; justify-self: center; }
+  .down.into-llm1 svg { grid-column: 1; }
+  .down.from-llm2 svg { grid-column: 7; }
+  body.transparent .ask-row .counter { margin-top: -0.2rem; }
+  .flow { align-items: stretch; }
+  .right { display: flex; align-items: center; justify-content: center; color: var(--muted); }
+  .right svg { width: 1.5rem; height: 1.5rem; }
+  .node { background: var(--card); border: 1px solid var(--line); border-radius: 0.8rem; padding: 0.6rem 0.9rem; display: flex; flex-direction: column; gap: 0.4rem; }
+  .node-head { display: flex; align-items: center; gap: 0.45rem; margin: 0; white-space: nowrap; }
+  .node-head svg { width: 1.1rem; height: 1.1rem; }
+  .chip { white-space: nowrap; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.04em; color: var(--violet); background: var(--violet-soft); border-radius: 0.35rem; padding: 0.05rem 0.4rem; }
+  .prompt { background: var(--slate-soft); border-radius: 0.5rem; padding: 0.35rem 0.6rem; font-size: 0.85rem; }
+  .prompt .label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin: 0; }
+  .prompt p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .prompt p.empty { color: var(--muted); font-style: italic; }
+  .prompt .model-name { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 0.78rem; }
+  .head-row { display: flex; align-items: baseline; justify-content: space-between; gap: 0.5rem; }
+  #reply { flex: 1; min-height: 12rem; font-size: 0.9rem; }
+  .reply-actions { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; }
+  .reply-actions .counter { margin: 0; }
+  #check-button { font-size: 0.85rem; padding: 0.45rem 0.9rem; }
+  .reply-buttons { display: flex; align-items: center; gap: 0.5rem; }
+  /* The pause switch: on, Ask stops after LLM 1 and "Check this reply" sends the reply on; off, the reply goes straight to the guardrail. */
+  .toggle { appearance: none; margin: 0; flex: none; width: 2.3rem; height: 1.3rem; border-radius: 999px; background: var(--grey-soft); border: 1px solid var(--line); position: relative; cursor: pointer; transition: background 0.15s; }
+  .toggle::after { content: ""; position: absolute; top: 0.1rem; left: 0.1rem; width: 0.95rem; height: 0.95rem; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3); transition: transform 0.15s; }
+  .toggle:checked { background: var(--teal); border-color: var(--teal); }
+  .toggle:checked::after { transform: translateX(1rem); }
+  .toggle:disabled { opacity: 0.55; cursor: default; }
+  .edited { color: var(--amber); }
+
+  .badge { display: inline-block; font-weight: 700; font-size: 0.85rem; border-radius: 999px; padding: 0.1rem 0.75rem; }
+  .badge.ACCEPTED { color: var(--green); background: var(--green-soft); }
+  .badge.REJECTED { color: var(--red); background: var(--red-soft); }
+  .badge.UNREADABLE { color: var(--grey); background: var(--grey-soft); }
+  .badge.GATEWAY_ERROR { color: var(--amber); background: var(--amber-soft); }
+  .reason { margin: 0.3rem 0 0; font-size: 0.85rem; overflow-wrap: anywhere; }
+  .timing { font-size: 0.8rem; color: var(--muted); margin: 0; }
+  .error { color: var(--amber); font-size: 0.85rem; margin: 0; overflow-wrap: anywhere; }
   .placeholder { color: var(--muted); margin: 0; }
-  footer {
-    text-align: center;
-    font-size: 0.8rem;
-    color: var(--muted);
-    padding: 0.6rem 1rem 0.9rem;
+  .node .placeholder { font-size: 0.85rem; }
+
+  /* What the patient sees. */
+  #patient-card { margin-top: 0; }
+  body.opaque #patient-card { margin-top: 1rem; }
+  .bubble { display: flex; gap: 0.6rem; align-items: flex-start; }
+  .bubble svg { width: 2rem; height: 2rem; flex: none; }
+  .bubble p { margin: 0; background: var(--teal-soft); border-radius: 0 0.8rem 0.8rem 0.8rem; padding: 0.55rem 0.9rem; white-space: pre-wrap; }
+  .notice { display: flex; gap: 0.6rem; align-items: flex-start; background: var(--amber-soft); color: var(--amber); border-radius: 0.6rem; padding: 0.55rem 0.9rem; }
+  .notice svg { width: 1.4rem; height: 1.4rem; flex: none; margin-top: 0.1rem; }
+  .notice p { margin: 0; }
+
+  footer { text-align: center; font-size: 0.8rem; color: var(--muted); padding: 0.3rem 1rem 0.5rem; }
+
+  @media (max-width: 900px) {
+    .flow, .down { grid-template-columns: 1fr; }
+    .down.into-llm1 svg, .down.from-llm2 svg { grid-column: 1; }
+    .right { height: 1.5rem; }
+    .right svg { transform: rotate(90deg); }
   }
-  @media (max-width: 760px) {
+  @media (max-width: 640px) {
+    .bar { flex-direction: column; align-items: flex-start; }
+    .mode { align-items: flex-start; }
     .ask-row { flex-direction: column; align-items: stretch; }
-    button.primary { margin-top: 0; }
-    .results { grid-template-columns: 1fr; }
+    #ask-button { margin-top: 0; }
   }
 </style>
 </head>
-<body>
+<body class="opaque">
 <header>
-  <div class="brand">
-    <svg viewBox="0 0 64 64" aria-hidden="true">
-      <circle cx="32" cy="32" r="30" fill="#fff"/>
-      <path d="M26 12h12v12h12v12H38v12H26V36H14V24h12z" fill="#0f766e"/>
-      <path d="M44 41c2.4-2.4 6.2-.6 6.2 2.6 0 2.7-3.2 5.1-6.2 7.4-3-2.3-6.2-4.7-6.2-7.4 0-3.2 3.8-5 6.2-2.6z" fill="#e11d48"/>
-    </svg>
-    <div>
-      <h1>Health Advisor</h1>
-      <p>Tell us how you feel. We'll help you find the right next step.</p>
+  <div class="bar">
+    <div class="brand">
+      <svg viewBox="0 0 64 64" aria-hidden="true">
+        <circle cx="32" cy="32" r="30" fill="#fff"/>
+        <path d="M26 12h12v12h12v12H38v12H26V36H14V24h12z" fill="#0f766e"/>
+        <path d="M44 41c2.4-2.4 6.2-.6 6.2 2.6 0 2.7-3.2 5.1-6.2 7.4-3-2.3-6.2-4.7-6.2-7.4 0-3.2 3.8-5 6.2-2.6z" fill="#e11d48"/>
+      </svg>
+      <div>
+        <h1>Health Advisor</h1>
+        <p>Tell us how you feel. We'll help you find the right next step.</p>
+      </div>
+    </div>
+    <div class="mode">
+      <span class="mode-caption" id="mode-caption">Show what happens inside</span>
+      <div class="switch" role="group" aria-labelledby="mode-caption">
+        <button type="button" data-mode="opaque" aria-pressed="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 3l18 18M10.6 6.1A10 10 0 0 1 12 6c5.5 0 9 6 9 6a17 17 0 0 1-2.6 3.3M6.6 6.6C4.3 8.1 3 12 3 12s3.5 6 9 6a9.6 9.6 0 0 0 4.4-1.1"/></svg>
+          Opaque
+        </button>
+        <button type="button" data-mode="transparent" aria-pressed="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 12s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6z"/><circle cx="12" cy="12" r="2.5"/></svg>
+          Transparent
+        </button>
+      </div>
     </div>
   </div>
 </header>
 
 <main>
-  <div class="tabs" role="tablist">
-    <button class="tab" role="tab" id="tab-ask" aria-controls="panel-ask" aria-selected="true">Ask the advisor</button>
-    <button class="tab" role="tab" id="tab-check" aria-controls="panel-check" aria-selected="false" tabindex="-1">🐞 Interactive guardrail tester</button>
+  <form class="ask-row" id="ask-form">
+    <div class="field">
+      <label for="question">What's troubling you?</label>
+      <textarea id="question" autocomplete="off" maxlength="500" rows="2" placeholder="I'm in terrible pain... help me!"></textarea>
+      <div class="counter" id="question-counter">0 / 500</div>
+    </div>
+    <button class="primary" type="submit" id="ask-button" disabled>Ask</button>
+  </form>
+
+  <div class="transparent-only">
+    <div class="down into-llm1" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3v17M6 14l6 6 6-6"/></svg></div>
+    <div class="flow">
+      <section class="node" aria-labelledby="llm1-head">
+        <h2 class="node-head" id="llm1-head"><span class="chip">LLM 1</span> Advice model</h2>
+        <div class="prompt">
+          <p class="label">Model</p>
+          <p class="model-name">{{advisor-model}}</p>
+        </div>
+        <div class="prompt">
+          <p class="label">System prompt</p>
+          <p>You're a health advisor. Reply in two or three short sentences. Do no harm!</p>
+        </div>
+      </section>
+
+      <div class="right" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12h17M14 6l6 6-6 6"/></svg></div>
+
+      <form class="node" id="check-form" aria-labelledby="reply-label">
+        <div class="head-row">
+          <label class="node-head" for="reply" id="reply-label">LLM 1's reply</label>
+          <span class="timing" id="llm1-timing"></span>
+        </div>
+        <div id="llm1-problem"></div>
+        <textarea id="reply" autocomplete="off" maxlength="500" placeholder="Type a reply the advisor might send…"></textarea>
+        <div class="reply-actions">
+          <span class="counter" id="reply-counter">0 / 500</span>
+          <span class="reply-buttons">
+            <input type="checkbox" class="toggle" id="pause" checked aria-label="Pause before the guardrail" title="Pause before the guardrail">
+            <button class="primary" type="submit" id="check-button" disabled>Check this reply</button>
+          </span>
+        </div>
+      </form>
+
+      <div class="right" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12h17M14 6l6 6-6 6"/></svg></div>
+
+      <section class="node" aria-labelledby="llm2-head">
+        <h2 class="node-head" id="llm2-head"><span class="chip">LLM 2</span> Guardrail model</h2>
+        <div class="prompt">
+          <p class="label">Model</p>
+          <p class="model-name">{{guardrail-model}}</p>
+        </div>
+        <div class="prompt">
+          <p class="label">System prompt</p>
+          <p>Could this reply harm a patient who acts on it? Answer "harmful" (true or false) and a one-sentence reason.</p>
+        </div>
+      </section>
+
+      <div class="right" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12h17M14 6l6 6-6 6"/></svg></div>
+
+      <section class="node" aria-labelledby="llm2-reply-head">
+        <div class="head-row">
+          <h2 class="node-head" id="llm2-reply-head">LLM 2's reply</h2>
+          <span class="timing" id="llm2-timing"></span>
+        </div>
+        <div id="verdict"><p class="placeholder">Accept or reject?</p></div>
+      </section>
+    </div>
+    <div class="down from-llm2" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3v17M6 14l6 6 6-6"/></svg></div>
   </div>
 
-  <section class="panel" id="panel-ask" role="tabpanel" aria-labelledby="tab-ask">
-    <form class="ask-row" id="ask-form">
-      <div class="field">
-        <label for="question">What's troubling you?</label>
-        <textarea id="question" maxlength="500" rows="3" placeholder="I'm in terrible pain... help me!"></textarea>
-        <div class="counter" id="question-counter">0 / 500</div>
-      </div>
-      <button class="primary" type="submit" id="ask-button" disabled>Ask</button>
-    </form>
-    <div class="results" id="ask-results">
-      <div class="card">
-        <h2>What the patient sees</h2>
-        <div id="patient-view"><p class="placeholder">The advisor's answer appears here.</p></div>
-      </div>
-      <div class="card">
-        <h2>Behind the scenes</h2>
-        <div id="ask-behind"><p class="placeholder">The model's reply and the guardrail's verdict appear here.</p></div>
-      </div>
-    </div>
-  </section>
-
-  <section class="panel" id="panel-check" role="tabpanel" aria-labelledby="tab-check" hidden>
-    <form class="ask-row" id="check-form">
-      <div class="field">
-        <label for="advice">Advice to check</label>
-        <textarea id="advice" maxlength="500" rows="3" placeholder="Type a reply the advisor might send…"></textarea>
-        <div class="counter" id="advice-counter">0 / 500</div>
-      </div>
-      <button class="primary" type="submit" id="check-button" disabled>Check</button>
-    </form>
-    <div class="results single">
-      <div class="card">
-        <h2>The guardrail's verdict</h2>
-        <div id="check-result"><p class="placeholder">Would this advice reach the patient? The verdict appears here.</p></div>
-      </div>
-    </div>
+  <section class="card" id="patient-card" aria-label="The advisor's answer">
+    <h2 class="transparent-only">What the patient sees</h2>
+    <div id="patient-view"><p class="placeholder">The advisor's answer appears here.</p></div>
   </section>
 </main>
 
 <footer>Fictional workshop demo — not medical advice.</footer>
 
 <script>
-  const LABELS = { LET_THROUGH: "Let through", STOPPED: "Stopped", UNAVAILABLE: "Couldn't check" };
+  const LABELS = { ACCEPTED: "Accepted", REJECTED: "Rejected", UNREADABLE: "Unreadable verdict", GATEWAY_ERROR: "Gateway error" };
+  const ADVISOR_ICON = '<svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="30" fill="#0f766e"/>'
+    + '<path d="M26 14h12v12h12v12H38v12H26V38H14V26h12z" fill="#fff"/></svg>';
+  const WARNING_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">'
+    + '<path d="M12 3l10 18H2z"/><path d="M12 10v4M12 17.5v.01"/></svg>';
+
+  const question = document.getElementById("question");
+  const reply = document.getElementById("reply");
+  const askButton = document.getElementById("ask-button");
+  const checkButton = document.getElementById("check-button");
+  const pause = document.getElementById("pause");
+  const replyLabel = document.getElementById("reply-label");
+  const llm1Timing = document.getElementById("llm1-timing");
+  const llm1Problem = document.getElementById("llm1-problem");
+  const llm2Timing = document.getElementById("llm2-timing");
+  const verdictView = document.getElementById("verdict");
+  const patientView = document.getElementById("patient-view");
+
+  const PLACEHOLDER = reply.placeholder;
+  let busy = false;
+  let replyFromLlm1 = null;  // the text LLM 1 wrote, to tell whether the user has changed it
 
   function el(tag, className, text) {
     const node = document.createElement(tag);
@@ -218,132 +326,169 @@
     return node;
   }
 
+  function withIcon(className, icon, text) {
+    const node = el("div", className);
+    node.innerHTML = icon;
+    node.append(el("p", "", text));
+    return node;
+  }
+
   function seconds(ms) {
     return (ms / 1000).toFixed(1) + " s";
   }
 
-  function verdictNodes(verdict) {
-    return [
-      el("span", "badge " + verdict.state, LABELS[verdict.state]),
-      el("p", "reason", verdict.reason),
-    ];
-  }
-
-  function bubble(text) {
-    const wrap = el("div", "bubble");
-    wrap.innerHTML = '<svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="30" fill="#0f766e"/>'
-      + '<path d="M26 14h12v12h12v12H38v12H26V38H14V26h12z" fill="#fff"/></svg>';
-    wrap.append(el("p", "", text));
-    return wrap;
-  }
-
   async function post(path, body) {
-    const response = await fetch(path, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
+    let response;
+    try {
+      response = await fetch(path, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+    } catch (e) {
+      throw new Error("The Health Advisor app isn't responding. Is it still running?");
+    }
     const data = await response.json().catch(() => ({ error: "The app answered " + response.status + "." }));
     if (!response.ok) throw new Error(data.error || "The app answered " + response.status + ".");
     return data;
   }
 
-  // Tabs
-  const tabs = [document.getElementById("tab-ask"), document.getElementById("tab-check")];
-  function select(tab) {
-    for (const t of tabs) {
-      const selected = t === tab;
-      t.setAttribute("aria-selected", selected);
-      t.tabIndex = selected ? 0 : -1;
-      document.getElementById(t.getAttribute("aria-controls")).hidden = !selected;
-    }
+  // Mode: opaque shows what the patient sees; transparent opens up the flow. Kept in the URL (#transparent).
+  const modeButtons = document.querySelectorAll(".switch button");
+  function setMode(mode) {
+    document.body.className = mode;
+    for (const button of modeButtons) button.setAttribute("aria-pressed", button.dataset.mode === mode);
+    history.replaceState(null, "", mode === "transparent" ? "#transparent" : location.pathname);
   }
-  for (const tab of tabs) {
-    tab.addEventListener("click", () => {
-      select(tab);
-      document.getElementById(tab === tabs[0] ? "question" : "advice").focus();
-    });
-    tab.addEventListener("keydown", (e) => {
-      if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
-      const next = tabs[(tabs.indexOf(tab) + 1) % tabs.length];
-      select(next);
-      next.focus();
-    });
+  for (const button of modeButtons) button.addEventListener("click", () => setMode(button.dataset.mode));
+  setMode(location.hash === "#transparent" ? "transparent" : "opaque");
+
+  function update() {
+    for (const [input, counterId] of [[question, "question-counter"], [reply, "reply-counter"]]) {
+      const counter = document.getElementById(counterId);
+      counter.textContent = input.value.length + " / 500";
+      counter.classList.toggle("full", input.value.length >= 500);
+    }
+    askButton.disabled = busy || question.value.trim().length === 0;
+    checkButton.disabled = busy || !pause.checked || reply.value.trim().length === 0;
+    reply.readOnly = busy || !pause.checked;
+    pause.disabled = busy;
+    const edited = replyFromLlm1 === null ? reply.value.length > 0 : reply.value !== replyFromLlm1;
+    replyLabel.textContent = edited ? "Your reply, in place of LLM 1's" : "LLM 1's reply";
+    replyLabel.classList.toggle("edited", edited);
   }
 
-  // A form: textarea with counter, a button that can't be pressed twice, Ctrl/Cmd+Enter to submit.
-  function wire(formId, inputId, counterId, buttonId, idleLabel, busyLabel, run) {
-    const form = document.getElementById(formId);
-    const input = document.getElementById(inputId);
-    const counter = document.getElementById(counterId);
-    const button = document.getElementById(buttonId);
-    let busy = false;
-    const update = () => {
-      const length = input.value.length;
-      counter.textContent = length + " / 500";
-      counter.classList.toggle("full", length >= 500);
-      button.disabled = busy || input.value.trim().length === 0;
-    };
-    input.addEventListener("input", update);
-    input.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) form.requestSubmit();
-    });
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      if (button.disabled) return;
-      busy = true;
-      button.textContent = busyLabel;
-      update();
-      try {
-        await run(input.value.trim());
-      } finally {
-        busy = false;
-        button.textContent = idleLabel;
-        update();
-      }
-    });
+  function showPatient(text, technical) {
+    patientView.replaceChildren(technical ? withIcon("notice", WARNING_ICON, text) : withIcon("bubble", ADVISOR_ICON, text));
+  }
+
+  function showVerdict(verdict) {
+    verdictView.replaceChildren(
+      el("span", "badge " + verdict.state, LABELS[verdict.state]),
+      el("p", "reason", verdict.reason));
+    llm2Timing.textContent = "judged in " + seconds(verdict.latencyMs);
+  }
+
+  function showProblem(message) {
+    verdictView.replaceChildren(el("p", "error", message));
+    showPatient(message, true);
+  }
+
+  async function run(steps) {
+    busy = true;
     update();
+    try {
+      await steps();
+    } finally {
+      busy = false;
+      update();
+    }
   }
 
-  wire("ask-form", "question", "question-counter", "ask-button", "Ask", "Asking…", async (question) => {
-    const patient = document.getElementById("patient-view");
-    const behind = document.getElementById("ask-behind");
-    patient.replaceChildren(el("p", "placeholder", "The advisor is thinking…"));
-    behind.replaceChildren(el("p", "placeholder", "Asking the model, then the guardrail…"));
+  // LLM 2: the guardrail judges whatever is in the reply box, and the app decides what the patient sees.
+  async function checkReply() {
+    verdictView.replaceChildren(el("p", "placeholder", "LLM 2 is judging…"));
+    llm2Timing.textContent = "";
+    patientView.replaceChildren(el("p", "placeholder", "The advisor is thinking…"));
     try {
-      const r = await post("/api/ask", { question });
-      patient.replaceChildren(bubble(r.patientView));
-      if (r.adviceError) {
-        behind.replaceChildren(
-          el("p", "error", r.adviceError),
-          el("p", "timing", "advice " + seconds(r.adviceLatencyMs)));
-        return;
-      }
-      const shown = r.verdict.state === "LET_THROUGH";
-      const nodes = [el("p", "reply" + (shown ? "" : " stopped"), r.advice)];
-      if (r.verdict.state === "STOPPED") nodes.push(el("p", "note", "Stopped by the guardrail"));
-      if (r.verdict.state === "UNAVAILABLE") nodes.push(el("p", "note", "Held back: the guardrail couldn't check it"));
-      nodes.push(...verdictNodes(r.verdict));
-      nodes.push(el("p", "timing", "advice " + seconds(r.adviceLatencyMs) + " · guardrail " + seconds(r.verdict.latencyMs)));
-      behind.replaceChildren(...nodes);
+      const result = await post("/api/check", { advice: reply.value.trim() });
+      showVerdict(result.verdict);
+      showPatient(result.patientView, result.verdict.state === "GATEWAY_ERROR");
     } catch (error) {
-      patient.replaceChildren(el("p", "placeholder", "No answer."));
-      behind.replaceChildren(el("p", "error", error.message));
+      showProblem(error.message);
     }
-  });
+  }
 
-  wire("check-form", "advice", "advice-counter", "check-button", "Check", "Checking…", async (advice) => {
-    const result = document.getElementById("check-result");
-    result.replaceChildren(el("p", "placeholder", "The guardrail is checking…"));
+  // Ask: LLM 1 answers, its reply lands in the box, then the guardrail judges it.
+  async function ask() {
+    const text = question.value.trim();
+    llm1Timing.textContent = "";
+    llm2Timing.textContent = "";
+    llm1Problem.replaceChildren();
+    replyFromLlm1 = "";
+    reply.value = "";
+    reply.placeholder = "LLM 1 is writing…";
+    update();
+    verdictView.replaceChildren(el("p", "placeholder", "Waiting for LLM 1's reply"));
+    patientView.replaceChildren(el("p", "placeholder", "The advisor is thinking…"));
+    let advice;
     try {
-      const r = await post("/api/check", { advice });
-      result.replaceChildren(
-        ...verdictNodes(r.verdict),
-        el("p", "timing", "checked in " + seconds(r.verdict.latencyMs)));
+      advice = await post("/api/advise", { question: text });
     } catch (error) {
-      result.replaceChildren(el("p", "error", error.message));
+      reply.placeholder = PLACEHOLDER;
+      llm1Problem.replaceChildren(el("p", "error", error.message));
+      showProblem(error.message);
+      return;
     }
+    reply.placeholder = PLACEHOLDER;
+    if (advice.error) {
+      llm1Timing.textContent = "failed after " + seconds(advice.latencyMs);
+      llm1Problem.replaceChildren(
+        el("span", "badge GATEWAY_ERROR", LABELS.GATEWAY_ERROR),
+        el("p", "reason", advice.error));
+      verdictView.replaceChildren(el("p", "placeholder", "Nothing to judge"));
+      showPatient(advice.patientView, true);
+      return;
+    }
+    llm1Timing.textContent = "answered in " + seconds(advice.latencyMs);
+    replyFromLlm1 = advice.advice;
+    reply.value = advice.advice;
+    update();
+    // Paused (transparent mode only): the reply waits in the box until "Check this reply". The patient's view never pauses.
+    if (pause.checked && document.body.classList.contains("transparent")) {
+      verdictView.replaceChildren(el("p", "placeholder", "Press “Check this reply”"));
+      patientView.replaceChildren(el("p", "placeholder", "The reply is waiting for the guardrail."));
+      return;
+    }
+    await checkReply();
+  }
+
+  // A changed reply hasn't been judged yet.
+  reply.addEventListener("input", () => {
+    update();
+    verdictView.replaceChildren(el("p", "placeholder", "Press “Check this reply”"));
+    llm1Timing.textContent = "";
+    llm2Timing.textContent = "";
+    patientView.replaceChildren(el("p", "placeholder", "The reply has changed and hasn't been checked yet."));
   });
+  question.addEventListener("input", update);
+  pause.addEventListener("change", update);
+
+  document.getElementById("ask-form").addEventListener("submit", (e) => {
+    e.preventDefault();
+    if (!askButton.disabled) run(ask);
+  });
+  document.getElementById("check-form").addEventListener("submit", (e) => {
+    e.preventDefault();
+    if (!checkButton.disabled) run(checkReply);
+  });
+  // Ctrl+Enter (Cmd+Enter on a Mac) submits.
+  for (const [input, form] of [[question, "ask-form"], [reply, "check-form"]]) {
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) document.getElementById(form).requestSubmit();
+    });
+  }
+  update();
 </script>
 </body>
 </html>

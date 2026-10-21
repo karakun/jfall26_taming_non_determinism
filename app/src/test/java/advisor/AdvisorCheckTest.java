@@ -15,6 +15,8 @@ class AdvisorCheckTest {
             Map.of("type", "object"));
     static final AdvisorConfig ADVISOR = new AdvisorConfig("advisor prompt", "the-model", 0.7, 200);
 
+    private static final String ADVICE = "Drink plenty of water and rest.";
+
     private final StubGateway stub = new StubGateway();
     private final Advisor advisor = new Advisor(new Gateway(stub.settings()), GUARDRAIL, ADVISOR);
 
@@ -24,48 +26,58 @@ class AdvisorCheckTest {
     }
 
     @Test
-    void harmfulAdviceIsStoppedWithTheGuardrailsReason() {
+    void acceptedAdviceReachesThePatient() {
+        stub.answering("{\"harmful\": false, \"reason\": \"Rest is safe.\"}");
+
+        var result = advisor.check(ADVICE);
+
+        assertThat(result.advice()).isEqualTo(ADVICE);
+        assertThat(result.verdict().state()).isEqualTo(State.ACCEPTED);
+        assertThat(result.verdict().reason()).isEqualTo("Rest is safe.");
+        assertThat(result.patientView()).isEqualTo(ADVICE);
+    }
+
+    @Test
+    void rejectedAdviceIsReplacedByTheFallback() {
         stub.answering("{\"harmful\": true, \"reason\": \"It suggests assisted dying.\"}");
 
         var result = advisor.check("Dignitas or Exit?");
 
-        assertThat(result.advice()).isEqualTo("Dignitas or Exit?");
-        assertThat(result.verdict().state()).isEqualTo(State.STOPPED);
+        assertThat(result.verdict().state()).isEqualTo(State.REJECTED);
         assertThat(result.verdict().reason()).isEqualTo("It suggests assisted dying.");
+        assertThat(result.patientView()).isEqualTo(Advisor.FALLBACK);
     }
 
     @Test
-    void harmlessAdviceIsLetThrough() {
-        stub.answering("{\"harmful\": false, \"reason\": \"Rest is safe.\"}");
-
-        assertThat(advisor.check("Drink plenty of water and rest.").verdict().state()).isEqualTo(State.LET_THROUGH);
-    }
-
-    @Test
-    void anAnswerThatIsntJsonCantBeChecked() {
+    void anAnswerThatIsntJsonIsUnreadableAndThePatientGetsTheFallback() {
         stub.answering("not json");
 
-        var verdict = advisor.check("advice").verdict();
+        var result = advisor.check(ADVICE);
 
-        assertThat(verdict.state()).isEqualTo(State.UNAVAILABLE);
-        assertThat(verdict.reason()).contains("isn't JSON");
+        assertThat(result.verdict().state()).isEqualTo(State.UNREADABLE);
+        assertThat(result.verdict().reason()).contains("isn't JSON");
+        assertThat(result.patientView()).isEqualTo(Advisor.FALLBACK);
     }
 
     @Test
-    void anAnswerWithoutHarmfulCantBeChecked() {
+    void anAnswerWithoutHarmfulIsUnreadable() {
         stub.answering("{\"reason\": \"No verdict.\"}");
 
-        assertThat(advisor.check("advice").verdict().state()).isEqualTo(State.UNAVAILABLE);
+        var result = advisor.check(ADVICE);
+
+        assertThat(result.verdict().state()).isEqualTo(State.UNREADABLE);
+        assertThat(result.patientView()).isEqualTo(Advisor.FALLBACK);
     }
 
     @Test
-    void aGatewayErrorMeansTheAdviceCantBeChecked() {
+    void aGatewayErrorIsReportedAsATechnicalProblem() {
         stub.failingWith(500);
 
-        var verdict = advisor.check("advice").verdict();
+        var result = advisor.check(ADVICE);
 
-        assertThat(verdict.state()).isEqualTo(State.UNAVAILABLE);
-        assertThat(verdict.reason()).contains("500");
+        assertThat(result.verdict().state()).isEqualTo(State.GATEWAY_ERROR);
+        assertThat(result.verdict().reason()).contains("500");
+        assertThat(result.patientView()).isEqualTo(Advisor.TECHNICAL_PROBLEM);
     }
 
     @Test
