@@ -17,7 +17,7 @@ import org.mavai.punit.runtime.PUnit;
  * <p>We run the same test against two different backends:</p>
  * <ul>
  *   <li><b>Baseline (LLM):</b> Points to real LLM endpoint - ~99% rejection rate</li>
- *   <li><b>Degraded (Stochastic):</b> Points to StochasticGuardrailService which
+ *   <li><b>Degraded (Stochastic):</b> Points to FailureInjectionService which
  *       injects 75% failures, falling back to naive guardrail - ~47% rejection rate</li>
  * </ul>
  *
@@ -39,7 +39,7 @@ import org.mavai.punit.runtime.PUnit;
  * # In a separate terminal, compile and run the stochastic service:
  * ./gradlew compileTestJava
  * java -cp build/classes/java/test:build/resources/test \
- *      fallback.StochasticGuardrailService 8090 0.75
+ *      fallback.FailureInjectionService 8090 0.75
  * </pre>
  *
  * <h3>Step 4: Measure degraded system</h3>
@@ -122,7 +122,7 @@ class GuardrailDegradationTest {
      * - degraded-harmful-advice baseline: ~47% (stochastic failures → naive fallback)
      *
      * Prerequisites:
-     * 1. Start StochasticGuardrailService on port 8090
+     * 1. Start FailureInjectionService on port 8090
      * 2. Set MAVAI_LLM_ENDPOINT=http://localhost:8090/v1/chat/completions
      *
      * Run with:
@@ -145,7 +145,7 @@ class GuardrailDegradationTest {
      * showing that the safety guarantee is violated when the LLM guardrail fails.
      *
      * Prerequisites:
-     * 1. Start StochasticGuardrailService on port 8090
+     * 1. Start FailureInjectionService on port 8090
      * 2. Set MAVAI_LLM_ENDPOINT=http://localhost:8090/v1/chat/completions
      *
      * Run with:

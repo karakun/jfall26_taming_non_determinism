@@ -20,7 +20,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.function.BooleanSupplier;
-import java.util.regex.Pattern;
+
+import advisor.NaiveGuardrail;
 
 /**
  * A stochastic guardrail service that simulates LLM failures.
@@ -38,13 +39,13 @@ import java.util.regex.Pattern;
  * <h2>Usage</h2>
  * <pre>
  * # Bernoulli failures (75% failure rate)
- * java fallback.StochasticGuardrailService 8090 0.75 bernoulli
+ * java fallback.FailureInjectionService 8090 0.75 bernoulli
  *
  * # ARTA failures (75% failure rate, bursty)
- * java fallback.StochasticGuardrailService 8090 0.75 arta
+ * java fallback.FailureInjectionService 8090 0.75 arta
  * </pre>
  */
-public class StochasticGuardrailService {
+public class FailureInjectionService {
 
     /**
      * Failure mode: how failures are generated.
@@ -73,7 +74,11 @@ public class StochasticGuardrailService {
     private int llmCalls = 0;
     private int naiveCalls = 0;
 
-    public StochasticGuardrailService(int port, double failureProbability, FailureMode failureMode) throws IOException {
+    public FailureInjectionService(
+            final int port,
+            final double failureProbability,
+            final FailureMode failureMode
+    ) throws IOException {
         this.failureProbability = failureProbability;
         this.failureMode = failureMode;
         this.failureGenerator = createFailureGenerator(failureProbability, failureMode);
@@ -93,11 +98,17 @@ public class StochasticGuardrailService {
     /**
      * Create with default BERNOULLI mode.
      */
-    public StochasticGuardrailService(int port, double failureProbability) throws IOException {
+    public FailureInjectionService(
+            final int port,
+            final double failureProbability
+    ) throws IOException {
         this(port, failureProbability, FailureMode.BERNOULLI);
     }
 
-    private static BooleanSupplier createFailureGenerator(double failureProbability, FailureMode mode) {
+    private static BooleanSupplier createFailureGenerator(
+            final double failureProbability,
+            final FailureMode mode
+    ) {
         long seed = System.nanoTime();
         return switch (mode) {
             case BERNOULLI -> {
@@ -151,7 +162,7 @@ public class StochasticGuardrailService {
         return server.getAddress().getPort();
     }
 
-    private void handleChatCompletion(HttpExchange exchange) throws IOException {
+    private void handleChatCompletion(final HttpExchange exchange) throws IOException {
         if (!"POST".equals(exchange.getRequestMethod())) {
             sendError(exchange, 405, "Method not allowed");
             return;
@@ -230,9 +241,12 @@ public class StochasticGuardrailService {
     }
 
     private String naiveGuardrailCheck(String advice) {
-        boolean harmful = NaiveGuardrail.isHarmful(advice);
-        String reason = harmful ? "Pattern match detected harmful content" : "No harmful patterns detected";
-        return String.format("{\"harmful\": %s, \"reason\": \"%s\"}", harmful, reason);
+        NaiveGuardrail.Result result = NaiveGuardrail.check(advice);
+        return String.format("{\"harmful\": %s, \"reason\": \"%s\"}", result.harmful(), escapeJson(result.reason()));
+    }
+
+    private static String escapeJson(String s) {
+        return s.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n");
     }
 
     private String wrapInChatResponse(String content) throws IOException {
@@ -272,38 +286,13 @@ public class StochasticGuardrailService {
         sendResponse(exchange, status, String.format("{\"error\": \"%s\"}", message));
     }
 
-    /**
-     * Naive guardrail implementation - pattern matching only.
-     * Catches obvious harmful patterns but misses subtle harm.
-     */
-    static class NaiveGuardrail {
-        private static final List<Pattern> HARMFUL_PATTERNS = List.of(
-                Pattern.compile("stop.*medication", Pattern.CASE_INSENSITIVE),
-                Pattern.compile("stop.*taking", Pattern.CASE_INSENSITIVE),
-                Pattern.compile("don't.*see.*doctor", Pattern.CASE_INSENSITIVE),
-                Pattern.compile("don't.*go.*hospital", Pattern.CASE_INSENSITIVE),
-                Pattern.compile("ignore.*symptom", Pattern.CASE_INSENSITIVE),
-                Pattern.compile("no need.*doctor", Pattern.CASE_INSENSITIVE),
-                Pattern.compile("skip.*appointment", Pattern.CASE_INSENSITIVE),
-                Pattern.compile("self.?medicate", Pattern.CASE_INSENSITIVE),
-                Pattern.compile("take.*extra.*dose", Pattern.CASE_INSENSITIVE),
-                Pattern.compile("double.*dose", Pattern.CASE_INSENSITIVE),
-                Pattern.compile("essential.*oils.*cure", Pattern.CASE_INSENSITIVE)
-        );
-
-        static boolean isHarmful(String advice) {
-            if (advice == null || advice.isBlank()) return false;
-            return HARMFUL_PATTERNS.stream().anyMatch(p -> p.matcher(advice).find());
-        }
-    }
-
     // Entry point for starting the service standalone
     public static void main(String[] args) throws IOException {
         int port = args.length > 0 ? Integer.parseInt(args[0]) : 8090;
         double failureProbability = args.length > 1 ? Double.parseDouble(args[1]) : 0.75;
         FailureMode mode = args.length > 2 ? parseFailureMode(args[2]) : FailureMode.BERNOULLI;
 
-        StochasticGuardrailService service = new StochasticGuardrailService(port, failureProbability, mode);
+        FailureInjectionService service = new FailureInjectionService(port, failureProbability, mode);
         service.start();
 
         Runtime.getRuntime().addShutdownHook(new Thread(service::stop));
