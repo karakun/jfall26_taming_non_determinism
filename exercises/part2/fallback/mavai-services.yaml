@@ -1,10 +1,10 @@
 format: mavai-services/1
 services:
+  # Baseline: LLM guardrail with ~99% accuracy on harmful advice
+  # Endpoint is set by MAVAI_LLM_ENDPOINT in .env
   advice-guardrail:
     type: language-model
     configuration:
-      # No provider: any server that speaks the OpenAI chat-completions protocol.
-      # Which one is set by MAVAI_LLM_ENDPOINT in .env.
       model: karakun-Mistral-Small-4-119B-2603
       system-prompt: {file: guardrail-system-prompt.txt}
       temperature: 0.7

@@ -36,9 +36,11 @@ tasks.test {
     }
 }
 
-// Everything participants work with sits in one folder, fallback/: the test class, the provider
-// configuration and the README. Gradle reads the class and its files from there.
-// The arta/ subfolder contains the ARTA module for stochastic failure generation.
+// Everything participants work with sits in one folder, fallback/:
+// - GuardrailDegradationTest.java: PUnit tests measuring safety degradation
+// - StochasticGuardrailService.java: HTTP service that injects failures and falls back to naive guardrail
+// - arta/: Bernoulli process for stochastic failure generation
+// - harmful-advice-contract.yaml: PUnit contract with harmful advice inputs
 sourceSets {
     test {
         java.setSrcDirs(listOf("."))
@@ -87,4 +89,21 @@ tasks.withType<org.mavai.punit.gradle.PUnitCheckTask>().configureEach {
             else System.clearProperty(property)
         }
     }
+}
+
+// Task to run the StochasticGuardrailService with all dependencies
+// Usage: ./gradlew runStochasticService --args="8090 0.75 bernoulli"
+tasks.register<JavaExec>("runStochasticService") {
+    group = "application"
+    description = "Run the StochasticGuardrailService for degradation testing"
+    classpath = sourceSets["test"].runtimeClasspath
+    mainClass.set("fallback.StochasticGuardrailService")
+
+    // Pass .env variables to the service
+    dotEnv.forEach { (key, value) ->
+        if (System.getenv(key) == null) environment(key, value)
+    }
+
+    // Enable console input for Ctrl+C
+    standardInput = System.`in`
 }

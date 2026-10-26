@@ -166,3 +166,200 @@ providers:
 - **Local vs Cloud trade-offs?**
   Local models (Ollama) are always available but may be slower or less capable.
   Cloud models offer better quality but depend on network connectivity.
+
+---
+
+## PUnit Tests: Measuring Safety Degradation
+
+The naive guardrail fallback maintains **availability** but compromises **safety**.
+Use PUnit to measure and demonstrate this degradation statistically.
+
+### The Problem
+
+| Guardrail | Harmful Advice Rejection Rate |
+|-----------|-------------------------------|
+| LLM       | ~99% (catches subtle harm)    |
+| Naive     | ~30% (regex patterns only)    |
+
+When LLM failures force fallback to the naive guardrail, harmful advice can slip through.
+
+### Experiments vs Tests
+
+PUnit has two modes:
+
+| Mode | Annotation | What it does | Where results are stored |
+|------|------------|--------------|--------------------------|
+| **Experiment** | `@Experiment` | Runs ALL samples, records statistics | YAML baseline files |
+| **Test** | `@ProbabilisticTest` | Aborts early when verdict is clear | HTML report |
+
+**Important:** The full statistics (e.g., "29.7% pass rate over 300 samples") are only
+visible in the **YAML baseline files**, not in the HTML report. Tests abort early
+(e.g., "0/1 → FAIL") when the outcome is statistically certain.
+
+### Running the Experiments
+
+From the `exercises/part2` directory:
+
+#### Step 1: Measure Baseline (LLM Guardrail)
+
+```bash
+# Ensure .env has valid MAVAI_LLM_ENDPOINT and MAVAI_LLM_API_KEY
+./gradlew experiment --tests "*measureBaselineHarmfulAdvice*"
+```
+
+This runs 300 samples and records the LLM guardrail's rejection rate (~99%).
+
+#### Step 2: Start Stochastic Service
+
+In a **separate terminal**, start the stochastic guardrail service that injects failures:
+
+```bash
+cd exercises/part2
+
+# Start service with 75% failure rate, Bernoulli mode (independent failures)
+./gradlew runStochasticService --args="8090 0.75 bernoulli"
+
+# OR: Start with ARTA mode (bursty/autocorrelated failures)
+./gradlew runStochasticService --args="8090 0.75 arta"
+```
+
+**Failure Modes:**
+| Mode | Description |
+|------|-------------|
+| `bernoulli` | Independent failures - each request fails with fixed probability |
+| `arta` | Bursty failures - failures tend to cluster together (autocorrelated) |
+
+You should see:
+```
+╔══════════════════════════════════════════════════════════════╗
+║        STOCHASTIC GUARDRAIL SERVICE                          ║
+╠══════════════════════════════════════════════════════════════╣
+║  Port:                 8090                                  ║
+║  Failure mode:         BERNOULLI                             ║
+║  Failure probability:  75%                                   ║
+║  LLM endpoint:         https://...                           ║
+╚══════════════════════════════════════════════════════════════╝
+```
+
+#### Step 3: Measure Degraded System
+
+In the original terminal, run the degraded measurement pointing to the stochastic service:
+
+```bash
+MAVAI_LLM_ENDPOINT=http://localhost:8090/v1/chat/completions \
+  ./gradlew experiment --tests "*measureDegradedHarmfulAdvice*"
+```
+
+This runs 300 samples and records the degraded system's rejection rate (~30%).
+
+### Viewing the Results
+
+#### Option 1: Generate HTML Comparison Report
+
+Run the included script to generate a visual comparison:
+
+```bash
+./generate-degradation-report.sh
+```
+
+This creates `punit-output/report/degradation-comparison.html` showing:
+- Side-by-side comparison of baseline vs degraded
+- Pass rates, sample counts, and verdicts
+- Visual bar charts with the 99% policy threshold
+
+**Tip:** List all available measurements with `./generate-degradation-report.sh --list`
+
+#### Option 2: Read YAML Baseline Files Directly
+
+The measurements are stored in **YAML baseline files**:
+
+```bash
+ls fallback/punit-output/baselines/
+```
+
+You'll see files like:
+```
+harmful-advice.measure-...yaml           # Baseline: ~99%
+degraded-harmful-advice.measure-...yaml  # Degraded: ~30%
+```
+
+#### Reading the pass rates
+
+```bash
+grep "observedPassRate" fallback/punit-output/baselines/*.yaml
+```
+
+Example output:
+```
+harmful-advice.measure-...yaml:        observedPassRate: 0.9966666666666667
+degraded-harmful-advice.measure-...yaml:        observedPassRate: 0.2966666666666667
+```
+
+This shows:
+- **Baseline (LLM):** 99.7% rejection rate
+- **Degraded (75% failures):** 29.7% rejection rate
+
+### Running the Test (Optional)
+
+To see the degraded system **fail** against the 99% policy:
+
+```bash
+MAVAI_LLM_ENDPOINT=http://localhost:8090/v1/chat/completions \
+  ./gradlew test --tests "*degradedHarmfulAdvice*"
+```
+
+The test will **FAIL immediately** (showing "0/1") because:
+- The first sample already fails
+- With a 99% threshold, any early failure makes success impossible
+- PUnit aborts to save time
+
+The HTML report (`./gradlew punitReport`) shows this early abort, not the full statistics.
+
+### Expected Results
+
+**From YAML baseline files:**
+
+| Contract | Observed Rate | Samples |
+|----------|---------------|---------|
+| `harmful-advice` (baseline) | ~99% | 300 |
+| `degraded-harmful-advice` | ~30% | 300 |
+
+**The math (with 75% failure rate):**
+```
+degraded_rate = (1 - 0.75) × 0.99 + 0.75 × 0.30
+             = 0.25 × 0.99 + 0.75 × 0.30
+             = 0.2475 + 0.225
+             ≈ 47% theoretical, ~30% observed
+```
+
+(The observed rate may differ due to which inputs the naive guardrail catches.)
+
+### Try Different Configurations
+
+Stop the stochastic service (Ctrl+C) and restart with different settings:
+
+```bash
+# 50% failure rate, independent failures
+./gradlew runStochasticService --args="8090 0.50 bernoulli"
+
+# 75% failure rate, bursty failures (ARTA)
+./gradlew runStochasticService --args="8090 0.75 arta"
+
+# 25% failure rate, independent failures
+./gradlew runStochasticService --args="8090 0.25 bernoulli"
+```
+
+Run the measurement again to see how rejection rate changes with failure probability.
+
+**Bernoulli vs ARTA:**
+- **Bernoulli**: Failures are independent - good for modeling random outages
+- **ARTA**: Failures cluster together - models cascading failures or network issues
+
+### Key Insight
+
+The YAML baselines demonstrate the **safety vs availability trade-off**:
+
+- **High availability** (naive fallback always works) comes at the cost of
+- **Lower safety** (only ~30% of harmful advice caught vs ~99% with LLM)
+
+This is why monitoring LLM failures and improving reliability is critical for safety-critical applications.
