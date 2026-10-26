@@ -38,7 +38,7 @@ tasks.test {
 
 // Everything participants work with sits in one folder, fallback/:
 // - GuardrailDegradationTest.java: PUnit tests measuring safety degradation
-// - StochasticGuardrailService.java: HTTP service that injects failures and falls back to naive guardrail
+// - FailureInjectionService.java: HTTP service that injects failures and falls back to naive guardrail
 // - arta/: Bernoulli process for stochastic failure generation
 // - harmful-advice-contract.yaml: PUnit contract with harmful advice inputs
 sourceSets {
@@ -91,13 +91,13 @@ tasks.withType<org.mavai.punit.gradle.PUnitCheckTask>().configureEach {
     }
 }
 
-// Task to run the StochasticGuardrailService with all dependencies
+// Task to run the FailureInjectionService with all dependencies
 // Usage: ./gradlew runStochasticService --args="8090 0.75 bernoulli"
 tasks.register<JavaExec>("runStochasticService") {
     group = "application"
-    description = "Run the StochasticGuardrailService for degradation testing"
+    description = "Run the FailureInjectionService for degradation testing"
     classpath = sourceSets["test"].runtimeClasspath
-    mainClass.set("fallback.StochasticGuardrailService")
+    mainClass.set("fallback.FailureInjectionService")
 
     // Pass .env variables to the service
     dotEnv.forEach { (key, value) ->
