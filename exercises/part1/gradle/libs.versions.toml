@@ -1,5 +1,5 @@
 [versions]
-punit = "0.15.1"
+punit = "0.16.0"
 junit = "5.14.4"
 assertj = "3.27.7"
 
