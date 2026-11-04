@@ -1,0 +1,18 @@
+# Environment file with secrets
+.env
+
+# WAL data directory
+app/wal-data/
+
+# Gradle build directories
+app/build/
+app/.gradle/
+build/
+.gradle/
+
+# IDE files
+.idea/
+*.iml
+
+# Fixture outputs (if generated)
+fixtures/*.json
