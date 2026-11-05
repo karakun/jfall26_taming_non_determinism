@@ -108,8 +108,18 @@ public class FileWriteAheadLog {
                 }
             }
 
-            // Sort by timestamp descending (newest first)
-            entries.sort((a, b) -> b.timestamp().compareTo(a.timestamp()));
+            // Sort: security scan entries first, then by timestamp descending (newest first)
+            entries.sort((a, b) -> {
+                boolean aIsScan = isSecurityScanEntry(a);
+                boolean bIsScan = isSecurityScanEntry(b);
+
+                // Security scan entries come first
+                if (aIsScan && !bIsScan) return -1;
+                if (!aIsScan && bIsScan) return 1;
+
+                // Within the same group, sort by timestamp descending
+                return b.timestamp().compareTo(a.timestamp());
+            });
             return entries;
 
         } catch (IOException e) {
@@ -161,6 +171,15 @@ public class FileWriteAheadLog {
             System.err.println("Failed to count WAL entries: " + e.getMessage());
             return 0;
         }
+    }
+
+    /**
+     * Checks if an entry is a security scan result.
+     * Security scan entries have verdict BYPASSED or BLOCKED.
+     */
+    private boolean isSecurityScanEntry(WalEntry entry) {
+        String verdict = entry.verdict();
+        return "BYPASSED".equals(verdict) || "BLOCKED".equals(verdict);
     }
 
     /**

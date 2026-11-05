@@ -131,9 +131,9 @@ public class HealthAdvisorApp {
         // Part 4: Initialize Security Scanner and Bias Detection
         appPort = port;
         HealthAdvisorApp.appDir = appDir;
-        llmModel = guardrail.model();  // Use same model as LLM1 for bias judge
-        securityScanner = new HealthAdvisorSecurityScanner("http://localhost:" + port, wal);
-        System.out.println("Tiberius Security Scanner initialized");
+        llmModel = guardrail.model();  // Use same model for LLM-as-judge
+        securityScanner = new HealthAdvisorSecurityScanner("http://localhost:" + port, wal, appDir, llmModel);
+        System.out.println("Tiberius Security Scanner initialized with LLM-as-judge: " + llmModel);
 
         HttpServer server = bind(port, share);
         server.setExecutor(Executors.newVirtualThreadPerTaskExecutor());

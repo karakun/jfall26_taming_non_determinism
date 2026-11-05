@@ -646,6 +646,57 @@
   .security-result-verdict.blocked { background: var(--green-soft); color: var(--green); }
   .security-result-verdict.bypassed { background: var(--red-soft); color: var(--red); }
   .security-result-verdict.error { background: var(--amber-soft); color: var(--amber); }
+  .security-result-item.expandable { cursor: pointer; }
+  .security-result-item.expandable:hover { background: var(--slate); }
+  .security-result-expand {
+    font-size: 0.7rem;
+    color: var(--muted);
+    margin-left: 0.3rem;
+  }
+  .security-result-details {
+    display: none;
+    padding: 0.5rem;
+    margin-top: 0.3rem;
+    background: var(--card);
+    border: 1px solid var(--divider);
+    border-radius: 0.3rem;
+    font-size: 0.75rem;
+  }
+  .security-result-details.open { display: block; }
+  .security-detail-section {
+    margin-bottom: 0.5rem;
+  }
+  .security-detail-section:last-child { margin-bottom: 0; }
+  .security-detail-label {
+    font-weight: 700;
+    color: var(--violet);
+    margin-bottom: 0.2rem;
+  }
+  .security-detail-content {
+    white-space: pre-wrap;
+    background: var(--slate-soft);
+    padding: 0.4rem;
+    border-radius: 0.2rem;
+    max-height: 150px;
+    overflow-y: auto;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 0.7rem;
+  }
+  .security-response-item {
+    margin-bottom: 0.4rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 1px solid var(--divider);
+  }
+  .security-response-item:last-child {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+  }
+  .security-response-header {
+    font-weight: 600;
+    color: var(--muted);
+    margin-bottom: 0.2rem;
+  }
   .security-empty {
     text-align: center;
     color: var(--muted);
@@ -2050,14 +2101,70 @@
 
     // Update results list
     if (results.length > 0) {
-      securityResultsList.innerHTML = results.map(r => {
+      securityResultsList.innerHTML = results.map((r, idx) => {
         const verdictClass = r.attackSucceeded ? "bypassed" : "blocked";
         const verdictText = r.attackSucceeded ? "BYPASSED" : "BLOCKED";
-        return `<div class="security-result-item">
-          <span class="security-result-name" title="${r.probeName}">${r.probeName}</span>
-          <span class="security-result-verdict ${verdictClass}">${verdictText}</span>
+        const hasDetails = (r.judgeReason && r.judgeReason.length > 0) ||
+                          (r.allResponses && r.allResponses.length > 0);
+        const expandClass = hasDetails ? "expandable" : "";
+        const expandIcon = hasDetails ? '<span class="security-result-expand">+</span>' : "";
+
+        // Build judge reasoning section
+        let judgeSection = "";
+        if (r.judgeReason && r.judgeReason.length > 0) {
+          const escapedReason = r.judgeReason
+            .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+          judgeSection = `
+            <div class="security-detail-section">
+              <div class="security-detail-label">Judge Analysis</div>
+              <div class="security-detail-content">${escapedReason}</div>
+            </div>`;
+        }
+
+        // Build responses section
+        let responsesSection = "";
+        if (r.allResponses && r.allResponses.length > 0) {
+          const responsesHtml = r.allResponses.map((resp, i) => {
+            const escapedResp = resp
+              .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            return `<div class="security-response-item">
+              <div class="security-response-header">Response ${i + 1}</div>
+              <div>${escapedResp}</div>
+            </div>`;
+          }).join("");
+          responsesSection = `
+            <div class="security-detail-section">
+              <div class="security-detail-label">LLM Responses (${r.allResponses.length})</div>
+              <div class="security-detail-content">${responsesHtml}</div>
+            </div>`;
+        }
+
+        return `<div class="security-result-wrapper">
+          <div class="security-result-item ${expandClass}" data-idx="${idx}">
+            <span class="security-result-name" title="${r.probeName}">${r.probeName}${expandIcon}</span>
+            <span class="security-result-verdict ${verdictClass}">${verdictText}</span>
+          </div>
+          ${hasDetails ? `<div class="security-result-details" id="security-details-${idx}">
+            ${judgeSection}
+            ${responsesSection}
+          </div>` : ""}
         </div>`;
       }).join("");
+
+      // Add click handlers for expandable items
+      document.querySelectorAll(".security-result-item.expandable").forEach(item => {
+        item.addEventListener("click", () => {
+          const idx = item.dataset.idx;
+          const details = document.getElementById(`security-details-${idx}`);
+          if (details) {
+            details.classList.toggle("open");
+            const expandIcon = item.querySelector(".security-result-expand");
+            if (expandIcon) {
+              expandIcon.textContent = details.classList.contains("open") ? "-" : "+";
+            }
+          }
+        });
+      });
     } else if (!status.running) {
       securityResultsList.innerHTML = '<div class="security-empty">No scan results yet</div>';
     }

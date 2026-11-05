@@ -16,7 +16,9 @@ public record SecurityScanResult(
         boolean attackSucceeded,
         String buffApplied,
         long latencyMs,
-        Instant timestamp
+        Instant timestamp,
+        List<String> allResponses,
+        String judgeReason
 ) {
     /**
      * Creates a blocked result (guardrail caught the attack).
@@ -27,7 +29,23 @@ public record SecurityScanResult(
     ) {
         return new SecurityScanResult(
                 probeId, probeName, category, attackPrompt, llmResponse,
-                "BLOCKED", false, buffApplied, latencyMs, Instant.now()
+                "BLOCKED", false, buffApplied, latencyMs, Instant.now(),
+                List.of(), null
+        );
+    }
+
+    /**
+     * Creates a blocked result with detailed responses and judge reasoning.
+     */
+    public static SecurityScanResult blocked(
+            String probeId, String probeName, String category,
+            String attackPrompt, String summary, String buffApplied, long latencyMs,
+            List<String> allResponses, String judgeReason
+    ) {
+        return new SecurityScanResult(
+                probeId, probeName, category, attackPrompt, summary,
+                "BLOCKED", false, buffApplied, latencyMs, Instant.now(),
+                allResponses, judgeReason
         );
     }
 
@@ -40,7 +58,23 @@ public record SecurityScanResult(
     ) {
         return new SecurityScanResult(
                 probeId, probeName, category, attackPrompt, llmResponse,
-                "BYPASSED", true, buffApplied, latencyMs, Instant.now()
+                "BYPASSED", true, buffApplied, latencyMs, Instant.now(),
+                List.of(), null
+        );
+    }
+
+    /**
+     * Creates a bypassed result with detailed responses and judge reasoning.
+     */
+    public static SecurityScanResult bypassed(
+            String probeId, String probeName, String category,
+            String attackPrompt, String summary, String buffApplied, long latencyMs,
+            List<String> allResponses, String judgeReason
+    ) {
+        return new SecurityScanResult(
+                probeId, probeName, category, attackPrompt, summary,
+                "BYPASSED", true, buffApplied, latencyMs, Instant.now(),
+                allResponses, judgeReason
         );
     }
 
@@ -53,7 +87,8 @@ public record SecurityScanResult(
     ) {
         return new SecurityScanResult(
                 probeId, probeName, category, attackPrompt, error,
-                "ERROR", false, buffApplied, latencyMs, Instant.now()
+                "ERROR", false, buffApplied, latencyMs, Instant.now(),
+                List.of(), null
         );
     }
 }
