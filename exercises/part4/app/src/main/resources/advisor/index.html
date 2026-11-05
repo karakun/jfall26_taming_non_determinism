@@ -520,6 +520,19 @@
     border: 1px solid var(--line);
   }
 
+  /* Part 4: Scan Controls Container - stacks security, bias, fingerprint vertically */
+  .scan-controls-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    align-items: flex-start;
+  }
+  .scan-row {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
   /* Part 4: Security Scan Controls */
   .security-dropdown { position: relative; }
   .security-controls {
@@ -676,6 +689,294 @@
   }
   .wal-entry-verdict.BLOCKED { color: var(--green); background: var(--green-soft); }
   .wal-entry-verdict.BYPASSED { color: var(--red); background: var(--red-soft); }
+
+  /* Part 4: Bias Scan Controls */
+  .bias-dropdown { position: relative; }
+  .bias-btn {
+    font: inherit;
+    font-size: 0.82rem;
+    font-weight: 650;
+    color: #fff;
+    background: var(--orange);
+    border: 1px solid var(--orange);
+    border-radius: 999px;
+    padding: 0.3rem 0.75rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+  .bias-btn:hover:not(:disabled) { background: #9a3412; }
+  .bias-btn:disabled { opacity: 0.5; cursor: default; }
+  .bias-btn svg { width: 0.9rem; height: 0.9rem; }
+  .bias-btn.running { animation: pulse 1.5s ease-in-out infinite; }
+  .bias-btn.stop { background: var(--red); border-color: var(--red); }
+  .bias-btn.stop:hover:not(:disabled) { background: #b91c1c; }
+  .bias-panel {
+    display: none;
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    left: 0;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 0.6rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    min-width: 360px;
+    z-index: 100;
+    color: var(--ink);
+  }
+  .bias-dropdown.open .bias-panel { display: block; }
+  .bias-rate-badge {
+    font-size: 0.85rem;
+    font-weight: 700;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  .bias-rate-badge.good { background: var(--green); color: #fff; }
+  .bias-rate-badge.warning { background: var(--amber); color: #fff; }
+  .bias-rate-badge.bad { background: var(--red); color: #fff; }
+  .bias-rate-badge.running { background: var(--orange); color: #fff; animation: pulse 1.5s ease-in-out infinite; }
+  .bias-result-item {
+    padding: 0.5rem;
+    background: var(--slate-soft);
+    border-radius: 0.3rem;
+    margin-bottom: 0.4rem;
+  }
+  .bias-result-item:last-child { margin-bottom: 0; }
+  .bias-result-scenario {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--orange);
+    margin-bottom: 0.2rem;
+  }
+  .bias-result-prompt {
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin-bottom: 0.3rem;
+  }
+  .bias-result-response {
+    font-size: 0.8rem;
+    background: var(--card);
+    padding: 0.3rem 0.5rem;
+    border-radius: 0.2rem;
+    border: 1px solid var(--line);
+    max-height: 60px;
+    overflow-y: auto;
+  }
+
+  /* Part 4: Fingerprint Controls */
+  .fingerprint-dropdown { position: relative; }
+  .fingerprint-btn {
+    font: inherit;
+    font-size: 0.82rem;
+    font-weight: 650;
+    color: #fff;
+    background: var(--teal);
+    border: 1px solid var(--teal);
+    border-radius: 999px;
+    padding: 0.3rem 0.75rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+  .fingerprint-btn:hover:not(:disabled) { background: var(--teal-dark); }
+  .fingerprint-btn:disabled { opacity: 0.5; cursor: default; }
+  .fingerprint-btn svg { width: 0.9rem; height: 0.9rem; }
+  .fingerprint-btn.running { animation: pulse 1.5s ease-in-out infinite; }
+  .fingerprint-panel {
+    display: none;
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    right: 0;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 0.6rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    min-width: 300px;
+    z-index: 100;
+    color: var(--ink);
+  }
+  .fingerprint-dropdown.open .fingerprint-panel { display: block; }
+  .fingerprint-confidence-badge {
+    font-size: 0.85rem;
+    font-weight: 700;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  .fingerprint-confidence-badge.high { background: var(--red); color: #fff; }
+  .fingerprint-confidence-badge.medium { background: var(--amber); color: #fff; }
+  .fingerprint-confidence-badge.low { background: var(--green); color: #fff; }
+  .fingerprint-confidence-badge.running { background: var(--teal); color: #fff; animation: pulse 1.5s ease-in-out infinite; }
+  .fingerprint-model {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 0.3rem;
+  }
+  .fingerprint-provider {
+    font-size: 0.85rem;
+    color: var(--muted);
+    margin-bottom: 0.5rem;
+  }
+  .fingerprint-candidates {
+    border-top: 1px solid var(--line);
+    padding-top: 0.5rem;
+    margin-top: 0.5rem;
+  }
+  .fingerprint-candidates-title {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 0.3rem;
+  }
+  .fingerprint-candidate {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.2rem 0;
+    font-size: 0.78rem;
+  }
+  .fingerprint-candidate-name { flex: 1; }
+  .fingerprint-candidate-confidence {
+    font-weight: 700;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+
+  /* Bias Probes Panel - expanded view */
+  .bias-panel {
+    display: none;
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    left: 0;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 0.6rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    min-width: 500px;
+    max-width: 600px;
+    max-height: 80vh;
+    z-index: 100;
+    color: var(--ink);
+  }
+  .bias-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--line);
+  }
+  .bias-tab {
+    flex: 1;
+    padding: 0.5rem 1rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+    background: none;
+    border: none;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+  }
+  .bias-tab:hover { color: var(--ink); }
+  .bias-tab.active {
+    color: var(--orange);
+    border-bottom-color: var(--orange);
+  }
+  .bias-tab-content {
+    display: none;
+    max-height: 60vh;
+    overflow-y: auto;
+  }
+  .bias-tab-content.active { display: block; }
+  .bias-category {
+    border-bottom: 1px solid var(--line);
+  }
+  .bias-category:last-child { border-bottom: none; }
+  .bias-category-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.6rem 0.8rem;
+    cursor: pointer;
+    background: var(--slate-soft);
+    font-size: 0.8rem;
+    font-weight: 700;
+  }
+  .bias-category-header:hover { background: var(--line); }
+  .bias-category-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .bias-category-icon {
+    width: 1.2rem;
+    height: 1.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+  }
+  .bias-category-count {
+    font-size: 0.7rem;
+    font-weight: 600;
+    background: var(--orange);
+    color: #fff;
+    padding: 0.1rem 0.4rem;
+    border-radius: 999px;
+  }
+  .bias-category-arrow {
+    transition: transform 0.2s;
+  }
+  .bias-category.open .bias-category-arrow {
+    transform: rotate(180deg);
+  }
+  .bias-probes-list {
+    display: none;
+    padding: 0.3rem 0;
+  }
+  .bias-category.open .bias-probes-list { display: block; }
+  .bias-probe-item {
+    padding: 0.4rem 0.8rem 0.4rem 2.5rem;
+    font-size: 0.75rem;
+    border-bottom: 1px solid var(--slate-soft);
+  }
+  .bias-probe-item:last-child { border-bottom: none; }
+  .bias-probe-id {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 0.65rem;
+    color: var(--muted);
+    margin-bottom: 0.15rem;
+  }
+  .bias-probe-prompt {
+    color: var(--ink);
+    margin-bottom: 0.15rem;
+  }
+  .bias-probe-expected {
+    font-size: 0.7rem;
+    color: var(--orange);
+    font-style: italic;
+  }
+  .bias-summary-stats {
+    display: flex;
+    gap: 1rem;
+    padding: 0.5rem 0.8rem;
+    background: var(--slate-soft);
+    border-bottom: 1px solid var(--line);
+    font-size: 0.75rem;
+  }
+  .bias-stat {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+  .bias-stat-value {
+    font-weight: 700;
+    color: var(--orange);
+  }
 </style>
 </head>
 <body class="opaque">
@@ -707,50 +1008,125 @@
         </div>
       </div>
       <span class="separator"></span>
-      <!-- Part 4: Security Scan Controls -->
-      <div class="security-dropdown" id="security-dropdown">
-        <div class="security-controls" id="security-controls">
-          <div class="select-dropdown">
-            <select id="security-category" title="Attack category">
-              <option value="ALL">All Categories</option>
-              <option value="JAILBREAK">Jailbreak</option>
-              <option value="PROMPT_INJECTION">Prompt Injection</option>
-              <option value="MULTI_TURN">Multi-Turn</option>
-            </select>
+      <!-- Part 4: All Scan Controls (stacked vertically) -->
+      <div class="scan-controls-container">
+        <!-- Row 1: Security Scan -->
+        <div class="scan-row">
+          <div class="security-dropdown" id="security-dropdown">
+            <div class="security-controls" id="security-controls">
+              <div class="select-dropdown">
+                <select id="security-category" title="Attack category">
+                  <option value="ALL">All Categories</option>
+                  <option value="JAILBREAK">Jailbreak</option>
+                  <option value="PROMPT_INJECTION">Prompt Injection</option>
+                  <option value="MULTI_TURN">Multi-Turn</option>
+                </select>
+              </div>
+              <div class="select-dropdown">
+                <select id="security-buff" title="Healthcare buff">
+                  <option value="">No Buff</option>
+                  <option value="MedicalEmergency">Medical Emergency</option>
+                  <option value="DoctorAuthority">Doctor Authority</option>
+                  <option value="ConcernedParent">Concerned Parent</option>
+                  <option value="MedicalStudent">Medical Student</option>
+                  <option value="InsuranceClaim">Insurance Claim</option>
+                </select>
+              </div>
+              <button type="button" class="security-btn" id="security-scan-btn" title="Run security scan">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+                Run Scan
+              </button>
+              <button type="button" class="security-btn stop" id="security-stop-btn" title="Stop scan" style="display: none;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                  <rect x="6" y="6" width="12" height="12"/>
+                </svg>
+                Stop
+              </button>
+            </div>
+            <!-- Security Results Panel -->
+            <div class="security-panel" id="security-panel">
+              <div class="security-panel-header">
+                <h3 class="security-panel-title">Security Scan Results</h3>
+                <span class="security-asr-badge" id="security-asr-badge">--</span>
+              </div>
+              <div class="security-panel-body">
+                <div class="security-progress" id="security-progress"></div>
+                <div class="security-results-list" id="security-results-list">
+                  <div class="security-empty">No scan results yet</div>
+                </div>
+              </div>
+            </div>
           </div>
-          <div class="select-dropdown">
-            <select id="security-buff" title="Healthcare buff">
-              <option value="">No Buff</option>
-              <option value="MedicalEmergency">Medical Emergency</option>
-              <option value="DoctorAuthority">Doctor Authority</option>
-              <option value="ConcernedParent">Concerned Parent</option>
-              <option value="MedicalStudent">Medical Student</option>
-              <option value="InsuranceClaim">Insurance Claim</option>
-            </select>
-          </div>
-          <button type="button" class="security-btn" id="security-scan-btn" title="Run security scan">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-            </svg>
-            Run Scan
-          </button>
-          <button type="button" class="security-btn stop" id="security-stop-btn" title="Stop scan" style="display: none;">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
-              <rect x="6" y="6" width="12" height="12"/>
-            </svg>
-            Stop
-          </button>
         </div>
-        <!-- Security Results Panel -->
-        <div class="security-panel" id="security-panel">
-          <div class="security-panel-header">
-            <h3 class="security-panel-title">Security Scan Results</h3>
-            <span class="security-asr-badge" id="security-asr-badge">--</span>
+        <!-- Row 2: Bias Scan -->
+        <div class="scan-row">
+          <div class="bias-dropdown" id="bias-dropdown">
+            <div class="security-controls">
+              <div class="select-dropdown">
+                <select id="bias-category" title="Bias category">
+                  <option value="ALL">All Categories</option>
+                  <option value="AGE">Age (Elderly)</option>
+                  <option value="GENDER">Gender</option>
+                  <option value="WEIGHT">Weight</option>
+                  <option value="MENTAL">Mental Health</option>
+                  <option value="SOCIO">Socioeconomic</option>
+                  <option value="RACE">Race/Ethnicity</option>
+                  <option value="DISABILITY">Disability</option>
+                  <option value="PREGNANCY">Pregnancy</option>
+                  <option value="YOUNG">Young Patient</option>
+                  <option value="CHRONIC">Chronic Illness</option>
+                </select>
+              </div>
+              <button type="button" class="bias-btn" id="bias-scan-btn" title="Run bias evaluation">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                  <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                </svg>
+                <span id="bias-btn-text">Run Scan</span>
+              </button>
+            </div>
+            <!-- Bias Results Panel (summary only - details go to WAL) -->
+            <div class="bias-panel" id="bias-panel">
+              <div class="security-panel-header">
+                <h3 class="security-panel-title">Bias Evaluation</h3>
+                <span class="bias-rate-badge" id="bias-rate-badge">--</span>
+              </div>
+              <div class="security-panel-body">
+                <div class="security-progress" id="bias-progress">Results logged to WAL</div>
+              </div>
+            </div>
           </div>
-          <div class="security-panel-body">
-            <div class="security-progress" id="security-progress"></div>
-            <div class="security-results-list" id="security-results-list">
-              <div class="security-empty">No scan results yet</div>
+        </div>
+        <!-- Row 3: Fingerprint -->
+        <div class="scan-row">
+          <div class="fingerprint-dropdown" id="fingerprint-dropdown">
+            <div class="security-controls">
+              <div class="select-dropdown">
+                <select id="fingerprint-config" title="Scan depth">
+                  <option value="quick">Quick</option>
+                  <option value="thorough" selected>Thorough</option>
+                </select>
+              </div>
+              <button type="button" class="fingerprint-btn" id="fingerprint-btn" title="Fingerprint model">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                  <path d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4"/>
+                </svg>
+                Fingerprint
+              </button>
+            </div>
+            <!-- Fingerprint Results Panel -->
+            <div class="fingerprint-panel" id="fingerprint-panel">
+              <div class="security-panel-header">
+                <h3 class="security-panel-title">Model Fingerprint</h3>
+                <span class="fingerprint-confidence-badge" id="fingerprint-confidence-badge">--</span>
+              </div>
+              <div class="security-panel-body">
+                <div class="security-progress" id="fingerprint-progress"></div>
+                <div id="fingerprint-results">
+                  <div class="security-empty">No fingerprint results yet</div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -1696,6 +2072,291 @@
 
   // Initial security status check
   pollSecurityStatus();
+
+  // ══════════════════════════════════════════════════════════════════════════════
+  // Part 4: Bias Scan Controls
+  // ══════════════════════════════════════════════════════════════════════════════
+
+  const biasDropdown = document.getElementById("bias-dropdown");
+  const biasScanBtn = document.getElementById("bias-scan-btn");
+  const biasBtnText = document.getElementById("bias-btn-text");
+  const biasCategory = document.getElementById("bias-category");
+  const biasRateBadge = document.getElementById("bias-rate-badge");
+  const biasProgress = document.getElementById("bias-progress");
+
+  let biasScanPolling = null;
+  let biasScanRunning = false;
+
+  // Close bias dropdown when clicking outside
+  document.addEventListener("click", (e) => {
+    if (!biasDropdown.contains(e.target)) {
+      biasDropdown.classList.remove("open");
+    }
+  });
+
+  // Toggle function - start or stop based on current state
+  async function toggleBiasScan() {
+    if (biasScanRunning) {
+      // Stop the scan immediately
+      if (biasScanPolling) {
+        clearInterval(biasScanPolling);
+        biasScanPolling = null;
+      }
+      resetBiasButton();
+      biasProgress.textContent = "Scan stopped";
+      try {
+        await fetch("/api/bias/scan/stop", { method: "POST" });
+      } catch (e) {
+        console.error("Failed to stop bias scan:", e);
+      }
+      return;
+    }
+
+    // Start the scan
+    const category = biasCategory.value;
+
+    // Open panel and show running state
+    biasDropdown.classList.add("open");
+    biasScanBtn.classList.add("running");
+    biasBtnText.textContent = "Stop";
+    biasRateBadge.textContent = "...";
+    biasRateBadge.className = "bias-rate-badge running";
+    biasProgress.textContent = "Starting bias scan...";
+    biasScanRunning = true;
+
+    try {
+      const response = await fetch("/api/bias/scan/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ category })
+      });
+
+      if (response.ok) {
+        // Start polling for status
+        biasScanPolling = setInterval(pollBiasStatus, 1000);
+      } else {
+        const error = await response.json();
+        biasRateBadge.textContent = "ERR";
+        biasRateBadge.className = "bias-rate-badge bad";
+        biasProgress.textContent = error.error || "Failed to start scan";
+        resetBiasButton();
+      }
+    } catch (e) {
+      console.error("Failed to start bias scan:", e);
+      biasRateBadge.textContent = "ERR";
+      biasRateBadge.className = "bias-rate-badge bad";
+      biasProgress.textContent = "Connection error";
+      resetBiasButton();
+    }
+  }
+
+  async function pollBiasStatus() {
+    try {
+      const response = await fetch("/api/bias/scan/status");
+      if (response.ok) {
+        const status = await response.json();
+        updateBiasPanel(status);
+
+        // Refresh WAL to show new entries (same as security scan)
+        fetchWalEntries();
+
+        if (!status.running && biasScanRunning) {
+          // Scan completed
+          biasScanRunning = false;
+          resetBiasButton();
+          if (biasScanPolling) {
+            clearInterval(biasScanPolling);
+            biasScanPolling = null;
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Failed to poll bias status:", e);
+    }
+  }
+
+  function updateBiasPanel(status) {
+    if (status.status === "running") {
+      biasProgress.textContent = status.progress || "Scanning...";
+      return;
+    }
+
+    if (status.status === "error") {
+      biasRateBadge.textContent = "ERR";
+      biasRateBadge.className = "bias-rate-badge bad";
+      biasProgress.textContent = status.error || "Error occurred";
+      return;
+    }
+
+    if (status.status === "complete") {
+      const biasRate = status.biasRate || 0;
+
+      // Update badge
+      let badgeClass = "good";
+      if (biasRate > 50) badgeClass = "bad";
+      else if (biasRate > 20) badgeClass = "warning";
+
+      biasRateBadge.textContent = `${biasRate.toFixed(1)}%`;
+      biasRateBadge.className = `bias-rate-badge ${badgeClass}`;
+
+      // Update summary - details are in WAL
+      biasProgress.textContent = `${status.biasedResponses || 0}/${status.totalEntries || 0} biased - see WAL for details`;
+    }
+  }
+
+  function resetBiasButton() {
+    biasScanBtn.classList.remove("running");
+    biasBtnText.textContent = "Run Scan";
+    biasScanRunning = false;
+  }
+
+  if (biasScanBtn) {
+    biasScanBtn.addEventListener("click", toggleBiasScan);
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════════
+  // Part 4: Fingerprint Controls
+  // ══════════════════════════════════════════════════════════════════════════════
+
+  const fingerprintDropdown = document.getElementById("fingerprint-dropdown");
+  const fingerprintBtn = document.getElementById("fingerprint-btn");
+  const fingerprintConfig = document.getElementById("fingerprint-config");
+  const fingerprintConfidenceBadge = document.getElementById("fingerprint-confidence-badge");
+  const fingerprintProgress = document.getElementById("fingerprint-progress");
+  const fingerprintResults = document.getElementById("fingerprint-results");
+
+  let fingerprintPolling = null;
+  let fingerprintRunning = false;
+
+  // Close fingerprint dropdown when clicking outside
+  document.addEventListener("click", (e) => {
+    if (!fingerprintDropdown.contains(e.target)) {
+      fingerprintDropdown.classList.remove("open");
+    }
+  });
+
+  async function startFingerprint() {
+    const config = fingerprintConfig.value;
+
+    // Open panel and show running state
+    fingerprintDropdown.classList.add("open");
+    fingerprintBtn.classList.add("running");
+    fingerprintBtn.disabled = true;
+    fingerprintConfidenceBadge.textContent = "...";
+    fingerprintConfidenceBadge.className = "fingerprint-confidence-badge running";
+    fingerprintProgress.textContent = "Analyzing endpoint...";
+    fingerprintResults.innerHTML = "";
+    fingerprintRunning = true;
+
+    try {
+      const response = await fetch("/api/fingerprint/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ config })
+      });
+
+      if (response.ok) {
+        // Start polling for status
+        fingerprintPolling = setInterval(pollFingerprintStatus, 1000);
+      } else {
+        const error = await response.json();
+        fingerprintConfidenceBadge.textContent = "ERR";
+        fingerprintConfidenceBadge.className = "fingerprint-confidence-badge high";
+        fingerprintProgress.textContent = error.error || "Failed to start";
+        resetFingerprintButton();
+      }
+    } catch (e) {
+      console.error("Failed to start fingerprint:", e);
+      fingerprintConfidenceBadge.textContent = "ERR";
+      fingerprintConfidenceBadge.className = "fingerprint-confidence-badge high";
+      fingerprintProgress.textContent = "Connection error";
+      resetFingerprintButton();
+    }
+  }
+
+  async function pollFingerprintStatus() {
+    try {
+      const response = await fetch("/api/fingerprint/status");
+      if (response.ok) {
+        const status = await response.json();
+        updateFingerprintPanel(status);
+
+        // Refresh WAL to show fingerprint entries
+        fetchWalEntries();
+
+        if (!status.running && fingerprintRunning) {
+          // Fingerprinting completed
+          fingerprintRunning = false;
+          resetFingerprintButton();
+          if (fingerprintPolling) {
+            clearInterval(fingerprintPolling);
+            fingerprintPolling = null;
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Failed to poll fingerprint status:", e);
+    }
+  }
+
+  function updateFingerprintPanel(status) {
+    if (status.status === "running") {
+      fingerprintProgress.textContent = status.progress || "Analyzing...";
+      return;
+    }
+
+    if (status.status === "error") {
+      fingerprintConfidenceBadge.textContent = "ERR";
+      fingerprintConfidenceBadge.className = "fingerprint-confidence-badge high";
+      fingerprintProgress.textContent = status.error || "Error occurred";
+      return;
+    }
+
+    if (status.status === "complete") {
+      const confidence = status.confidence || 0;
+
+      // Update badge - high confidence is bad (model is identifiable)
+      let badgeClass = "low";
+      if (confidence > 80) badgeClass = "high";
+      else if (confidence > 50) badgeClass = "medium";
+
+      fingerprintConfidenceBadge.textContent = `${confidence.toFixed(1)}%`;
+      fingerprintConfidenceBadge.className = `fingerprint-confidence-badge ${badgeClass}`;
+
+      // Update progress
+      fingerprintProgress.textContent = "";
+
+      // Update results
+      let html = `
+        <div class="fingerprint-model">${escapeHtml(status.identifiedModel || "Unknown")}</div>
+        <div class="fingerprint-provider">Provider: ${escapeHtml(status.identifiedProvider || "Unknown")}</div>
+      `;
+
+      const candidates = status.candidates || [];
+      if (candidates.length > 0) {
+        html += `
+          <div class="fingerprint-candidates">
+            <div class="fingerprint-candidates-title">Top Candidates</div>
+            ${candidates.map(c => `
+              <div class="fingerprint-candidate">
+                <span class="fingerprint-candidate-name">${escapeHtml(c.displayName)} (${escapeHtml(c.provider)})</span>
+                <span class="fingerprint-candidate-confidence">${c.confidence.toFixed(1)}%</span>
+              </div>
+            `).join("")}
+          </div>
+        `;
+      }
+
+      fingerprintResults.innerHTML = html;
+    }
+  }
+
+  function resetFingerprintButton() {
+    fingerprintBtn.classList.remove("running");
+    fingerprintBtn.disabled = false;
+  }
+
+  fingerprintBtn.addEventListener("click", startFingerprint);
 </script>
 </body>
 </html>
