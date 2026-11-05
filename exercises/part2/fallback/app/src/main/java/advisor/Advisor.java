@@ -112,9 +112,10 @@ public class Advisor {
     }
 
     /** The advice model: the guardrail's model with the app's own short prompt. */
-    public record AdvisorConfig(String systemPrompt, String model, double temperature, int maxTokens) {
+    public record AdvisorConfig(String systemPrompt, String fallbackSystemPrompt, String model, double temperature, int maxTokens) {
 
         static final String PROMPT_FILE = "advisor-system-prompt.txt";
+        static final String FALLBACK_PROMPT_FILE = "advisor-fallback-system-prompt.txt";
 
         public static AdvisorConfig load(Path appDir, String model) {
             Path file = appDir.resolve(PROMPT_FILE);
@@ -123,7 +124,17 @@ public class Advisor {
                         + ". Start the app from the app/ folder of the workshop repository.");
             }
             try {
-                return new AdvisorConfig(Files.readString(file), model, 0.7, 200);
+                String systemPrompt = Files.readString(file);
+                String fallbackSystemPrompt = systemPrompt; // Default to same prompt
+
+                // Load fallback prompt if it exists
+                Path fallbackFile = appDir.resolve(FALLBACK_PROMPT_FILE);
+                if (Files.isRegularFile(fallbackFile)) {
+                    fallbackSystemPrompt = Files.readString(fallbackFile);
+                    System.out.println("Loaded fallback system prompt from " + FALLBACK_PROMPT_FILE);
+                }
+
+                return new AdvisorConfig(systemPrompt, fallbackSystemPrompt, model, 0.7, 200);
             } catch (IOException e) {
                 throw new StartupException("Can't read " + PROMPT_FILE + ": " + e.getMessage());
             }

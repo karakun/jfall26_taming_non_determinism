@@ -160,6 +160,49 @@
   }
   .failure-toggle:checked { background: var(--red); border-color: var(--red); }
   .failure-toggle:checked::after { transform: translateX(1rem); }
+  .failure-toggle:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* Health status indicators */
+  .health-dot {
+    display: inline-block;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    margin-right: 0.3rem;
+  }
+  .health-dot.healthy { background: var(--green); }
+  .health-dot.unhealthy { background: var(--red); }
+  .health-dot.unknown { background: var(--amber); }
+  .failure-item-label.unhealthy { color: var(--muted); opacity: 0.6; }
+  .failure-item-label-row { display: flex; align-items: center; }
+  .failure-item-health {
+    font-size: 0.65rem;
+    color: var(--muted);
+    margin-top: 0.1rem;
+  }
+  .failure-item-health.unhealthy { color: var(--red); }
+  .provider-status .health-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    font-size: 0.7rem;
+    opacity: 0.9;
+  }
+  .provider-status .health-count { font-weight: 600; }
+
+  /* Prompt badge for fallback indicator */
+  .prompt-badge {
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 0.1rem 0.4rem;
+    border-radius: 999px;
+    margin-left: 0.3rem;
+    text-transform: uppercase;
+  }
+  .prompt-badge.fallback { background: var(--orange); color: #fff; }
+  .prompt-badge:empty { display: none; }
+  #llm1-prompt-container.fallback-active { border-left: 3px solid var(--orange); padding-left: 0.5rem; }
+  #llm1-system-prompt { transition: all 0.3s ease; }
 
   /* Naive guardrail box - appears below LLM2 when inactive */
   .llm2-wrapper { display: flex; flex-direction: column; gap: 0.5rem; }
@@ -546,6 +589,10 @@
       <div class="provider-status" id="provider-status">
         <span class="label">Provider:</span>
         <span class="name" id="provider-name">loading...</span>
+        <span class="health-indicator" id="health-indicator">
+          <span class="health-dot healthy"></span>
+          <span class="health-count" id="health-count">-/-</span>
+        </span>
       </div>
       <!-- Part 2: Failure injection dropdown -->
       <div class="failure-dropdown" id="failure-dropdown">
@@ -600,9 +647,9 @@
           <p class="label">Model</p>
           <p class="model-name" id="llm1-model">{{advisor-model}}</p>
         </div>
-        <div class="prompt">
-          <p class="label">System prompt</p>
-          <p>You're a health advisor. Reply in two or three short sentences. Do no harm!</p>
+        <div class="prompt" id="llm1-prompt-container">
+          <p class="label">System prompt <span class="prompt-badge" id="llm1-prompt-badge"></span></p>
+          <p id="llm1-system-prompt">You're a health advisor. Reply in two or three short sentences. Do no harm!</p>
         </div>
       </section>
 
@@ -748,8 +795,13 @@
   const guardrailLabel = document.getElementById("guardrail-label");
   const providerStatus = document.getElementById("provider-status");
   const providerName = document.getElementById("provider-name");
+  const healthIndicator = document.getElementById("health-indicator");
+  const healthCount = document.getElementById("health-count");
   const llm1Model = document.getElementById("llm1-model");
   const llm2Model = document.getElementById("llm2-model");
+  const llm1SystemPrompt = document.getElementById("llm1-system-prompt");
+  const llm1PromptBadge = document.getElementById("llm1-prompt-badge");
+  const llm1PromptContainer = document.getElementById("llm1-prompt-container");
 
   const PLACEHOLDER = reply.placeholder;
   let busy = false;
@@ -803,14 +855,31 @@
   }
 
   function updateFallbackUI(status) {
-    // Show primary provider name if no request made yet, otherwise show last used
-    const displayProvider = status.lastUsedProvider === "none" ? status.primaryProvider : status.lastUsedProvider;
-    const isPrimary = status.lastUsedProvider === status.primaryProvider || status.lastUsedProvider === "none";
-    providerName.textContent = displayProvider || "none";
-    providerStatus.classList.toggle("fallback", !isPrimary && status.lastUsedProvider !== "none");
+    // Show effective provider (the one that will be used for the next request)
+    const displayProvider = status.effectiveProvider || status.primaryProvider || "none";
+    providerName.textContent = displayProvider;
+    providerStatus.classList.toggle("fallback", status.willUseFallback || false);
 
-    // Update LLM 1 model name to show actual model being used
-    if (status.lastUsedModel) {
+    // Update health indicator in header
+    const healthyProviders = status.healthyProviderCount || 0;
+    const totalProviders = status.totalProviderCount || 0;
+    healthCount.textContent = `${healthyProviders}/${totalProviders}`;
+    const healthDot = healthIndicator.querySelector(".health-dot");
+    if (healthDot) {
+      healthDot.classList.remove("healthy", "unhealthy", "unknown");
+      if (healthyProviders === totalProviders) {
+        healthDot.classList.add("healthy");
+      } else if (healthyProviders === 0) {
+        healthDot.classList.add("unhealthy");
+      } else {
+        healthDot.classList.add("unknown"); // Partial health
+      }
+    }
+
+    // Update LLM 1 model name to show effective model (the one that will be used)
+    if (status.effectiveModel) {
+      llm1Model.textContent = status.effectiveModel;
+    } else if (status.lastUsedModel) {
       llm1Model.textContent = status.lastUsedModel;
     }
 
@@ -825,16 +894,41 @@
       for (const provider of status.providers) {
         const item = el("div", "failure-item");
         const info = el("div", "failure-item-info");
-        const label = el("span", "failure-item-label" + (provider.failed ? " failed" : ""), provider.label);
+
+        // Build label with health dot
+        const labelContainer = el("div", "failure-item-label-row");
+        const healthDotSpan = el("span", "health-dot " + (provider.healthy ? "healthy" : "unhealthy"));
+        const labelClasses = "failure-item-label" +
+          (provider.failed ? " failed" : "") +
+          (!provider.healthy ? " unhealthy" : "");
+        const label = el("span", labelClasses, provider.label);
+        labelContainer.append(healthDotSpan, label);
+
         const model = el("span", "failure-item-model", provider.model);
-        info.append(label, model);
+        info.append(labelContainer, model);
+
+        // Show health error if unhealthy
+        if (!provider.healthy && provider.healthError) {
+          const healthMsg = el("span", "failure-item-health unhealthy", provider.healthError);
+          info.append(healthMsg);
+        }
+
         const toggle = document.createElement("input");
         toggle.type = "checkbox";
         toggle.className = "failure-toggle";
         toggle.checked = provider.failed;
-        toggle.title = `Toggle ${provider.label} failure`;
+        toggle.title = provider.healthy
+          ? `Toggle ${provider.label} failure`
+          : `${provider.label} is unavailable`;
         toggle.dataset.index = provider.index;
-        toggle.addEventListener("change", () => toggleProviderFailure(provider.index, toggle));
+
+        // Disable toggle if provider is unhealthy (can't inject failure into unavailable provider)
+        if (!provider.healthy) {
+          toggle.disabled = true;
+        } else {
+          toggle.addEventListener("change", () => toggleProviderFailure(provider.index, toggle));
+        }
+
         item.append(info, toggle);
         llm1Providers.append(item);
       }
@@ -844,6 +938,20 @@
     guardrailToggle.checked = status.guardrailFailed || false;
     guardrailLabel.classList.toggle("failed", status.guardrailFailed || false);
     document.body.classList.toggle("naive-active", status.guardrailFailed || false);
+
+    // Update system prompt display immediately based on failure injection state
+    // willUseFallback is true when primary is failed and we'll use a fallback provider
+    if (status.willUseFallback && status.fallbackSystemPrompt) {
+      llm1SystemPrompt.textContent = status.fallbackSystemPrompt.trim();
+      llm1PromptBadge.textContent = "FALLBACK";
+      llm1PromptBadge.className = "prompt-badge fallback";
+      llm1PromptContainer.classList.add("fallback-active");
+    } else if (status.primarySystemPrompt) {
+      llm1SystemPrompt.textContent = status.primarySystemPrompt.trim();
+      llm1PromptBadge.textContent = "";
+      llm1PromptBadge.className = "prompt-badge";
+      llm1PromptContainer.classList.remove("fallback-active");
+    }
   }
 
   // Part 2: Toggle provider failure

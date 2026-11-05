@@ -73,6 +73,10 @@ public class HealthAdvisorApp {
         ProviderConfig providerConfig = ProviderConfig.load(appDir, environment);
         fallbackGateway = new FallbackGateway(providerConfig);
 
+        // Set system prompts for fallback behavior and UI display
+        fallbackGateway.setPrimarySystemPrompt(advisorConfig.systemPrompt());
+        fallbackGateway.setFallbackSystemPrompt(advisorConfig.fallbackSystemPrompt());
+
         // Use FallbackGateway for actual requests (enables provider fallback)
         Advisor advisor = new Advisor(fallbackGateway, guardrail, advisorConfig);
 
