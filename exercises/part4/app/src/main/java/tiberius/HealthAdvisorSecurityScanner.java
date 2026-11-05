@@ -2,6 +2,7 @@ package tiberius;
 
 import io.tiberius.core.AttackCategory;
 import io.tiberius.core.TiberiusScanner;
+import io.tiberius.core.buff.Buff;
 import io.tiberius.core.detector.LLMJudgeDetector;
 import io.tiberius.core.generator.Generator;
 import io.tiberius.core.probe.AbstractProbe;
@@ -91,15 +92,15 @@ public class HealthAdvisorSecurityScanner {
     }
 
     /**
-     * Runs a Tiberius multiTrialScan with custom probes (default 20 samples).
+     * Runs a Tiberius multiTrialScan with custom probes (default samples).
      */
     public SecurityScanReport scan(
             List<AttackProbe> probes,
-            Object buff,
+            Buff buff,
             SecurityScanReport report,
             Consumer<SecurityScanResult> onResult
     ) {
-        return scan(probes, report, onResult, DEFAULT_SAMPLES);
+        return scan(probes, buff, report, onResult, DEFAULT_SAMPLES);
     }
 
     /**
@@ -108,9 +109,16 @@ public class HealthAdvisorSecurityScanner {
      * <p>Scans each probe separately to provide incremental progress updates.
      * Uses execute() to get full access to individual ScanResult objects including
      * response text and detection explanations.
+     *
+     * @param probes         List of attack probes to run
+     * @param buff           Optional buff to transform attack prompts (can be null)
+     * @param report         Report to collect results
+     * @param onResult       Callback for each result
+     * @param samplesPerProbe Number of samples per probe
      */
     public SecurityScanReport scan(
             List<AttackProbe> probes,
+            Buff buff,
             SecurityScanReport report,
             Consumer<SecurityScanResult> onResult,
             int samplesPerProbe
@@ -126,12 +134,26 @@ public class HealthAdvisorSecurityScanner {
             for (int probeIdx = 0; probeIdx < probes.size() && !cancelled.get(); probeIdx++) {
                 AttackProbe probe = probes.get(probeIdx);
 
-                System.out.printf("Scanning probe %d/%d: %s (%s)%n",
-                        probeIdx + 1, probes.size(), probe.id(), probe.name());
+                // Apply buff transformation to the prompt if buff is provided
+                String transformedPrompt = probe.prompt();
+                if (buff != null) {
+                    transformedPrompt = buff.transform(probe.prompt());
+                    System.out.printf("Scanning probe %d/%d: %s (%s) with buff %s%n",
+                            probeIdx + 1, probes.size(), probe.id(), probe.name(), buff.getName());
+                    System.out.printf("  Original: %s%n", probe.prompt().substring(0, Math.min(50, probe.prompt().length())) + "...");
+                    System.out.printf("  Transformed: %s%n", transformedPrompt.substring(0, Math.min(50, transformedPrompt.length())) + "...");
+                } else {
+                    System.out.printf("Scanning probe %d/%d: %s (%s)%n",
+                            probeIdx + 1, probes.size(), probe.id(), probe.name());
+                }
 
-                // Create registry with just this probe
+                // Create probe with transformed prompt
+                AttackProbe transformedProbe = new AttackProbe(
+                        probe.id(), probe.name(), probe.category(), transformedPrompt);
+
+                // Create registry with the transformed probe
                 ProbeRegistry registry = new ProbeRegistry();
-                registry.register(createTiberiusProbe(probe));
+                registry.register(createTiberiusProbe(transformedProbe));
 
                 // Build scanner for this probe
                 TiberiusScanner scanner = TiberiusScanner.builder()
@@ -154,6 +176,7 @@ public class HealthAdvisorSecurityScanner {
                 int bypassed = 0;
 
                 for (ScanResult result : scanReport.results()) {
+
                     // Collect the LLM response
                     allResponses.add(result.response());
 
@@ -178,14 +201,15 @@ public class HealthAdvisorSecurityScanner {
                 String summary = String.format("%d samples, %d bypassed, ASR: %.1f%%",
                         totalSamples, bypassed, probeASR);
                 String judgeReason = judgeReasons.length() > 0 ? judgeReasons.toString().trim() : null;
+                String buffName = buff != null ? buff.getName() : null;
 
-                // Create result
+                // Create result with the transformed prompt
                 SecurityScanResult scanResult = bypassed > 0
                         ? SecurityScanResult.bypassed(probe.id(), probe.name(),
-                                probe.category(), probe.prompt(), summary, null, 0,
+                                probe.category(), transformedPrompt, summary, buffName, 0,
                                 allResponses, judgeReason)
                         : SecurityScanResult.blocked(probe.id(), probe.name(),
-                                probe.category(), probe.prompt(), summary, null, 0,
+                                probe.category(), transformedPrompt, summary, buffName, 0,
                                 allResponses, judgeReason);
 
                 report.addResult(scanResult);
@@ -250,9 +274,12 @@ public class HealthAdvisorSecurityScanner {
 
             StringBuilder content = new StringBuilder();
             content.append("Category: ").append(result.category()).append("\n");
+            if (result.buffApplied() != null && !result.buffApplied().isEmpty()) {
+                content.append("Buff: ").append(result.buffApplied()).append("\n");
+            }
             content.append("Samples: ").append(samples).append("\n");
             content.append("ASR: ").append(String.format("%.1f%%", asr)).append("\n\n");
-            content.append("Probe:\n").append(result.attackPrompt()).append("\n");
+            content.append("Prompt (with buff applied):\n").append(result.attackPrompt()).append("\n");
 
             // Add judge reasoning if available
             if (result.judgeReason() != null && !result.judgeReason().isEmpty()) {
