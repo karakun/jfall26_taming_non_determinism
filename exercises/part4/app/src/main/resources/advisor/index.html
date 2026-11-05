@@ -466,6 +466,8 @@
   .wal-entry-verdict.SAFE { color: var(--green); background: var(--green-soft); }
   .wal-entry-verdict.HARMFUL { color: var(--red); background: var(--red-soft); }
   .wal-entry-verdict.ERROR { color: var(--amber); background: var(--amber-soft); }
+  .wal-entry-verdict.FAIR { color: var(--green); background: var(--green-soft); }
+  .wal-entry-verdict.BIASED { color: var(--red); background: var(--red-soft); }
   .wal-entry-time {
     font-size: 0.75rem;
     color: var(--muted);
@@ -1067,16 +1069,16 @@
               <div class="select-dropdown">
                 <select id="bias-category" title="Bias category">
                   <option value="ALL">All Categories</option>
-                  <option value="AGE">Age (Elderly)</option>
-                  <option value="GENDER">Gender</option>
-                  <option value="WEIGHT">Weight</option>
-                  <option value="MENTAL">Mental Health</option>
-                  <option value="SOCIO">Socioeconomic</option>
-                  <option value="RACE">Race/Ethnicity</option>
-                  <option value="DISABILITY">Disability</option>
-                  <option value="PREGNANCY">Pregnancy</option>
-                  <option value="YOUNG">Young Patient</option>
-                  <option value="CHRONIC">Chronic Illness</option>
+                  <option value="pain_mgmt">Pain Management (Race)</option>
+                  <option value="cardiac">Cardiac Care (Gender)</option>
+                  <option value="mental_health">Mental Health (History)</option>
+                  <option value="chronic_pain">Chronic Pain (Age)</option>
+                  <option value="substance_use">Substance Use (Socioeconomic)</option>
+                  <option value="emergency">Emergency Care (Disability)</option>
+                  <option value="pediatric">Pediatric Care (Weight)</option>
+                  <option value="reproductive">Reproductive Health (Marital)</option>
+                  <option value="dermatology">Dermatology (Skin Tone)</option>
+                  <option value="surgery">Surgical Care (Language)</option>
                 </select>
               </div>
               <button type="button" class="bias-btn" id="bias-scan-btn" title="Run bias evaluation">
@@ -1104,8 +1106,8 @@
             <div class="security-controls">
               <div class="select-dropdown">
                 <select id="fingerprint-config" title="Scan depth">
-                  <option value="quick">Quick</option>
-                  <option value="thorough" selected>Thorough</option>
+                  <option value="quick" selected>Quick</option>
+                  <option value="thorough">Thorough</option>
                 </select>
               </div>
               <button type="button" class="fingerprint-btn" id="fingerprint-btn" title="Fingerprint model">
@@ -1743,7 +1745,7 @@
 
       const verdict = document.createElement("span");
       verdict.className = "wal-entry-verdict " + entry.verdict;
-      verdict.textContent = entry.verdict === "SAFE" ? "SAFE" : entry.verdict === "HARMFUL" ? "HARMFUL" : "ERROR";
+      verdict.textContent = entry.verdict;
 
       const time = document.createElement("span");
       time.className = "wal-entry-time";
@@ -2112,10 +2114,11 @@
       return;
     }
 
-    // Start the scan
+    // Get selected category
     const category = biasCategory.value;
+    const categories = category === "ALL" ? [] : [category];
 
-    // Open panel and show running state
+    // Open results panel
     biasDropdown.classList.add("open");
     biasScanBtn.classList.add("running");
     biasBtnText.textContent = "Stop";
@@ -2128,7 +2131,7 @@
       const response = await fetch("/api/bias/scan/start", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ category })
+        body: JSON.stringify({ categories, samples: 3 })
       });
 
       if (response.ok) {
@@ -2189,18 +2192,13 @@
     }
 
     if (status.status === "complete") {
-      const biasRate = status.biasRate || 0;
+      const biasedPairs = status.biasedPairs || 0;
+      const totalPairs = status.totalPairs || 0;
 
-      // Update badge
-      let badgeClass = "good";
-      if (biasRate > 50) badgeClass = "bad";
-      else if (biasRate > 20) badgeClass = "warning";
+      biasRateBadge.textContent = "";
+      biasRateBadge.className = "bias-rate-badge";
 
-      biasRateBadge.textContent = `${biasRate.toFixed(1)}%`;
-      biasRateBadge.className = `bias-rate-badge ${badgeClass}`;
-
-      // Update summary - details are in WAL
-      biasProgress.textContent = `${status.biasedResponses || 0}/${status.totalEntries || 0} biased - see WAL for details`;
+      biasProgress.textContent = `${biasedPairs} biased, ${totalPairs - biasedPairs} fair - see WAL`;
     }
   }
 
