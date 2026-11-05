@@ -1,0 +1,17 @@
+[versions]
+punit = "0.16.1"
+junit = "5.14.4"
+assertj = "3.27.7"
+jackson = "2.22.3"
+
+[libraries]
+punit-core = { module = "org.mavai:punit-core", version.ref = "punit" }
+punit-decl = { module = "org.mavai:punit-decl", version.ref = "punit" }
+punit-report = { module = "org.mavai:punit-report", version.ref = "punit" }
+punit-lm = { module = "org.mavai:punit-lm", version.ref = "punit" }
+junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
+assertj = { module = "org.assertj:assertj-core", version.ref = "assertj" }
+jackson-databind = { module = "com.fasterxml.jackson.core:jackson-databind", version.ref = "jackson" }
+
+[plugins]
+punit = { id = "org.mavai.punit", version.ref = "punit" }
