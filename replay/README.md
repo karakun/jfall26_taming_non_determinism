@@ -33,9 +33,9 @@ If every sample of a test fails with `unreachable … localhost:8090`, the repla
 
 ### What it answers
 
-For each request it looks up the system prompt and the input, checks that model, temperature, `max_tokens`, `top_p` and `response_format` equal the recording's, and returns one of the answers recorded for that input, drawn at random with replacement. The answer is the recorded one (verdict, reason, model, token usage); only `id` and `created` are fresh.
+For each request it looks up the system prompt, the input and the settings (model, temperature, `max_tokens`, `top_p` and `response_format`), and returns one of the answers recorded for exactly that request, drawn at random with replacement. The same input recorded with different settings, e.g. by two models, is kept apart: each request is answered only from the recordings with its settings. The answer is the recorded one (verdict, reason, model, token usage); only `id` and `created` are fresh.
 
-Anything it has no recording for (a changed system prompt, a new input, a different setting) is refused with HTTP 400. Punit then aborts the run (`provider 'openai-compatible' returned HTTP 400 — a defect, not a sample`) and shows the replay's message, which names what differs. The replay prints the same message in its terminal.
+Anything it has no recording for (a changed system prompt, a new input, a different setting) is refused with HTTP 400. Punit then aborts the run (`provider 'openai-compatible' returned HTTP 400 — a defect, not a sample`) and shows the replay's message, which names what differs; for a setting, it lists the values that were recorded (e.g. `The request's model is llama3.2; recorded with: karakun-Mistral-Small-4-119B-2603.`). The replay prints the same message in its terminal.
 
 ### Options
 
@@ -61,7 +61,7 @@ Punit never compares a run on one side with a baseline from the other: it reject
 
 ### Refreshing the recordings
 
-The recordings are made with the LLM recorder in the presenters' repository (`tools/llm-recorder`). After a calibration run, copy the new file into `recordings/` and restart the replay; it answers from every `*.jsonl` file there, pooling answers for the same input. Remove recordings that a new one replaces. Recordings for an old system prompt can stay: they're only used for requests with that prompt.
+The recordings are made with the LLM recorder in the presenters' repository (`tools/llm-recorder`). After a calibration run, copy the new file into `recordings/` and restart the replay; it answers from every `*.jsonl` file there, pooling answers for the same input and settings. Remove recordings that a new one replaces. Recordings for an old system prompt can stay: they're only used for requests with that prompt.
 
 ### Tests
 
