@@ -12,6 +12,7 @@ dependencies {
     testImplementation(libs.punit.decl)
     testImplementation(libs.punit.report)
     testImplementation(libs.punit.lm)
+    testImplementation(libs.jackson.databind)
     testImplementation(platform(libs.junit.bom))
     testImplementation("org.junit.jupiter:junit-jupiter")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
@@ -36,20 +37,22 @@ tasks.test {
 
 // Everything participants work with sits in one folder, guardrail/: the test class, the service
 // definition, the system prompt and the contracts. Gradle reads the class and its files from there.
+// services/ holds the code behind the guardrail's service type; participants don't need to open it.
 sourceSets {
     test {
         java.setSrcDirs(listOf("."))
-        java.include("guardrail/**")
-        resources.setSrcDirs(listOf("."))
-        resources.include("guardrail/**/*.yaml", "guardrail/**/*.txt")
+        java.include("guardrail/**", "services/**")
+        resources.setSrcDirs(listOf(".", "services"))
+        resources.include("guardrail/**/*.yaml", "guardrail/**/*.txt", "META-INF/**")
         resources.exclude("guardrail/punit-output/**")
     }
 }
 
-// What Punit writes for participants (baselines, the report) lands in guardrail/punit-output/,
+// What Punit writes for participants (baselines, explorations, the report) lands in guardrail/punit-output/,
 // next to the files it belongs to.
 punit {
     baselineDir.set("guardrail/punit-output/baselines")
+    explorationsDir.set("guardrail/punit-output/explorations")
 }
 
 tasks.named<org.mavai.punit.gradle.PUnitReportTask>("punitReport") {
@@ -57,7 +60,7 @@ tasks.named<org.mavai.punit.gradle.PUnitReportTask>("punitReport") {
 }
 
 // .env says where the model answers and is never committed (see .env.example). Its settings go into every
-// test JVM, including the measurement's; variables already set in the environment win.
+// test JVM, including the experiments'; variables already set in the environment win.
 val dotEnv: Map<String, String> = file(".env").takeIf { it.isFile }?.readLines().orEmpty()
     .map { it.trim() }
     .filter { it.isNotEmpty() && !it.startsWith("#") && it.contains("=") }
