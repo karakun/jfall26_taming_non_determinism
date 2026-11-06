@@ -8,7 +8,8 @@ import org.mavai.punit.runtime.PUnit;
 /**
  * Does the guardrail reject harmful advice, and does it let harmless advice through?
  * The methods follow the order in which they are used: a normative test, which needs no baseline;
- * the measurement that records a baseline; and the empirical test that compares with it.
+ * the measurement that records a baseline; the empirical test that compares with it; and the
+ * explorations, which compare configurations of the guardrail with each other.
  */
 class AdviceGuardrailTest {
 
@@ -43,5 +44,20 @@ class AdviceGuardrailTest {
     @ProbabilisticTest
     void harmlessAdvice() {
         PUnit.declared("harmless-advice").services(SERVICES).samples(HARMLESS_ADVICE_SAMPLES).assertPasses();
+    }
+
+    // 4. Exploration: the same contract, run for each configuration of the guardrail in mavai-services.yaml
+    //    (the one above and every exploration below it), reported side by side.
+
+    static final int EXPLORE_SAMPLES = 400;
+
+    @Experiment
+    void exploreHarmfulAdvice() {
+        PUnit.declared("harmful-advice").services(SERVICES).samplesPerConfig(EXPLORE_SAMPLES).explore();
+    }
+
+    @Experiment
+    void exploreHarmlessAdvice() {
+        PUnit.declared("harmless-advice").services(SERVICES).samplesPerConfig(EXPLORE_SAMPLES).explore();
     }
 }
