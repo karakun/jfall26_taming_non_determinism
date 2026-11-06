@@ -28,7 +28,8 @@ class RecordingsTest {
         assertThat(recordings.answerCount()).isEqualTo(5);
         assertThat(recordings.fileCount()).isEqualTo(3);
         assertThat(recordings.skippedCount()).isEqualTo(1);
-        assertThat(recordings.pools().get(new Recordings.RequestKey(SYSTEM, HARMFUL)).answers()).hasSize(4);
+        assertThat(recordings.pools().get(new Recordings.RequestKey(SYSTEM, HARMFUL))).singleElement()
+                .satisfies(pool -> assertThat(pool.answers()).hasSize(4));
     }
 
     @Test
@@ -39,10 +40,27 @@ class RecordingsTest {
     }
 
     @Test
-    void refusesToMixSettingsForTheSameInput() {
-        assertThatThrownBy(() -> Recordings.load(FIXTURES.resolve("conflict")))
-                .hasMessage("a.jsonl and b.jsonl record the same input with different temperature;"
-                        + " the replay can't tell which to use.");
+    void keepsRecordingsWithDifferentSettingsApart() {
+        Recordings recordings = Recordings.load(FIXTURES.resolve("two-settings"));
+        Random random = new Random(1);
+
+        assertThat(recordings.inputCount()).isEqualTo(2);
+        assertThat(recordings.answer(request(SYSTEM, HARMFUL, 0.7), random).status()).isEqualTo(200);
+        assertThat(recordings.answer(request(SYSTEM, HARMFUL, 0.5), random).status()).isEqualTo(200);
+        assertThat(recordings.answer(request(SYSTEM, HARMFUL, 0.3), random).refusal())
+                .hasValue("The request's temperature is 0.3; recorded with: 0.7, 0.5."
+                        + " The replay only answers with the settings that were recorded.");
+    }
+
+    @Test
+    void namesTheRecordedModelsWhenTheModelDiffers() {
+        Recordings recordings = Recordings.load(FIXTURES.resolve("two-settings"));
+        ObjectNode request = request(SYSTEM, HARMFUL, 0.7);
+        request.put("model", "another-model");
+
+        assertThat(recordings.answer(request, new Random(1)).refusal())
+                .hasValue("The request's model is another-model; recorded with: test-model."
+                        + " The replay only answers with the settings that were recorded.");
     }
 
     @Test
@@ -74,8 +92,8 @@ class RecordingsTest {
                         .startsWith("No recording for the input \"Take 3000 mg of paracetamol at once.\""));
 
         assertThat(recordings.answer(request(SYSTEM, HARMFUL, 0.5), random).refusal())
-                .hasValue("The request's temperature is 0.5, but the recording's is 0.7."
-                        + " The replay only answers the guardrail with the settings it was recorded with.");
+                .hasValue("The request's temperature is 0.5; recorded with: 0.7."
+                        + " The replay only answers with the settings that were recorded.");
     }
 
     @Test

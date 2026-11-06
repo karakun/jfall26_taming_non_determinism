@@ -10,7 +10,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -22,8 +21,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * The recorded answers of the real model, grouped by request: for each system prompt and input, the
- * settings it was recorded with and every answer it gave. Loaded once, never changed.
+ * The recorded answers of the real model, grouped by request: for each system prompt and input, and for
+ * each set of settings it was recorded with (e.g. two models), every answer it gave. Loaded once, never changed.
  */
 public final class Recordings {
 
@@ -62,6 +61,10 @@ public final class Recordings {
 
         /** The first setting that differs from the recorded one; absent settings count as "not set". */
         Optional<Difference> firstDifference(Settings recorded) {
+            return differences(recorded).stream().findFirst();
+        }
+
+        List<Difference> differences(Settings recorded) {
             Map<String, JsonNode[]> pairs = new LinkedHashMap<>();
             pairs.put("model", new JsonNode[] {model, recorded.model});
             pairs.put("temperature", new JsonNode[] {temperature, recorded.temperature});
@@ -71,7 +74,7 @@ public final class Recordings {
             return pairs.entrySet().stream()
                     .filter(pair -> !same(pair.getValue()[0], pair.getValue()[1]))
                     .map(pair -> new Difference(pair.getKey(), show(pair.getValue()[0]), show(pair.getValue()[1])))
-                    .findFirst();
+                    .toList();
         }
 
         private static boolean same(JsonNode a, JsonNode b) {
@@ -87,13 +90,7 @@ public final class Recordings {
     }
 
     /** A setting whose value differs from the recording's. */
-    public record Difference(String setting, String requested, String recorded) {
-
-        @Override
-        public String toString() {
-            return setting + " is " + requested + ", but the recording's is " + recorded;
-        }
-    }
+    public record Difference(String setting, String requested, String recorded) {}
 
     /** One recorded answer: the HTTP status and the body the gateway returned. */
     public record Answer(int status, ObjectNode body) {}
@@ -101,17 +98,19 @@ public final class Recordings {
     /** Everything recorded for one request. */
     public record Pool(Settings settings, List<Answer> answers) {}
 
+    private record PoolBuilder(Settings settings, List<Answer> answers) {}
+
     /** What the replay sends back: a recorded answer, or a refusal explaining what wasn't recorded. */
     public record Reply(int status, ObjectNode body, Optional<String> refusal) {}
 
     private static final ObjectMapper JSON = new ObjectMapper();
 
-    private final Map<RequestKey, Pool> pools;
+    private final Map<RequestKey, List<Pool>> pools;
     private final Set<String> systemPrompts;
     private final int fileCount;
     private final int skippedCount;
 
-    private Recordings(Map<RequestKey, Pool> pools, int fileCount, int skippedCount) {
+    private Recordings(Map<RequestKey, List<Pool>> pools, int fileCount, int skippedCount) {
         this.pools = Map.copyOf(pools);
         this.systemPrompts = pools.keySet().stream().map(RequestKey::systemPrompt).collect(Collectors.toSet());
         this.fileCount = fileCount;
@@ -124,9 +123,7 @@ public final class Recordings {
             throw new StartupException("No recordings folder at " + dir.toAbsolutePath().normalize()
                     + ". The replay answers from the *.jsonl files there.");
         }
-        Map<RequestKey, List<Answer>> answers = new LinkedHashMap<>();
-        Map<RequestKey, Settings> settings = new HashMap<>();
-        Map<RequestKey, String> firstFile = new HashMap<>();
+        Map<RequestKey, List<PoolBuilder>> building = new LinkedHashMap<>();
         int skipped = 0;
         List<Path> files = recordingFiles(dir);
         for (Path file : files) {
@@ -152,25 +149,25 @@ public final class Recordings {
                     continue;
                 }
                 Settings recorded = Settings.of(request);
-                Settings earlier = settings.putIfAbsent(key, recorded);
-                if (earlier != null) {
-                    Optional<Difference> difference = recorded.firstDifference(earlier);
-                    if (difference.isPresent()) {
-                        throw new StartupException(firstFile.get(key) + " and " + file.getFileName()
-                                + " record the same input with different " + difference.get().setting()
-                                + "; the replay can't tell which to use.");
-                    }
-                }
-                firstFile.putIfAbsent(key, file.getFileName().toString());
-                answers.computeIfAbsent(key, k -> new ArrayList<>())
-                        .add(new Answer(line.get("status").asInt(), (ObjectNode) response));
+                List<PoolBuilder> known = building.computeIfAbsent(key, k -> new ArrayList<>());
+                // Numbers compare as numbers (0.7 and 0.70 are one setting), so look for an equal one first.
+                PoolBuilder pool = known.stream()
+                        .filter(p -> p.settings().differences(recorded).isEmpty())
+                        .findFirst()
+                        .orElseGet(() -> {
+                            PoolBuilder fresh = new PoolBuilder(recorded, new ArrayList<>());
+                            known.add(fresh);
+                            return fresh;
+                        });
+                pool.answers().add(new Answer(line.get("status").asInt(), (ObjectNode) response));
             }
         }
-        if (answers.isEmpty()) {
+        if (building.isEmpty()) {
             throw new StartupException("No recorded answers in " + dir.toAbsolutePath().normalize() + ".");
         }
-        Map<RequestKey, Pool> pools = new LinkedHashMap<>();
-        answers.forEach((key, list) -> pools.put(key, new Pool(settings.get(key), List.copyOf(list))));
+        Map<RequestKey, List<Pool>> pools = new LinkedHashMap<>();
+        building.forEach((key, list) -> pools.put(key,
+                list.stream().map(b -> new Pool(b.settings(), List.copyOf(b.answers()))).toList()));
         return new Recordings(pools, files.size(), skipped);
     }
 
@@ -183,20 +180,21 @@ public final class Recordings {
         if (key.isEmpty()) {
             return refuse("The replay only answers chat completions with one system and one user message.");
         }
-        Pool pool = pools.get(key.get());
-        if (pool == null) {
+        List<Pool> candidates = pools.get(key.get());
+        if (candidates == null) {
             if (!systemPrompts.contains(key.get().systemPrompt())) {
                 return refuse("No recording for this system prompt (it starts \"" + shorten(key.get().systemPrompt(), 60)
-                        + "\"). The replay only answers the guardrail as it was recorded; was the system prompt changed?");
+                        + "\"). The replay only answers the model as it was recorded; was the system prompt changed?");
             }
             return refuse("No recording for the input \"" + shorten(key.get().input(), 60)
                     + "\". The replay only answers the inputs that were recorded; was a contract's input changed or added?");
         }
-        Optional<Difference> difference = Settings.of(request).firstDifference(pool.settings());
-        if (difference.isPresent()) {
-            return refuse("The request's " + difference.get()
-                    + ". The replay only answers the guardrail with the settings it was recorded with.");
+        Settings requested = Settings.of(request);
+        Optional<Pool> match = candidates.stream().filter(p -> requested.differences(p.settings()).isEmpty()).findFirst();
+        if (match.isEmpty()) {
+            return refuse(settingsRefusal(requested, candidates));
         }
+        Pool pool = match.get();
         Answer answer = pool.answers().get(random.nextInt(pool.answers().size()));
         ObjectNode body = answer.body().deepCopy();
         if (body.has("id")) {
@@ -208,12 +206,13 @@ public final class Recordings {
         return new Reply(answer.status(), body, Optional.empty());
     }
 
+    /** Recorded requests: one per system prompt, input and settings. */
     public int inputCount() {
-        return pools.size();
+        return pools.values().stream().mapToInt(List::size).sum();
     }
 
     public int answerCount() {
-        return pools.values().stream().mapToInt(pool -> pool.answers().size()).sum();
+        return pools.values().stream().flatMap(List::stream).mapToInt(pool -> pool.answers().size()).sum();
     }
 
     public int fileCount() {
@@ -225,8 +224,30 @@ public final class Recordings {
         return skippedCount;
     }
 
-    Map<RequestKey, Pool> pools() {
+    Map<RequestKey, List<Pool>> pools() {
         return pools;
+    }
+
+    /**
+     * Names the first setting that differs from the closest recording, and every value recorded for it,
+     * so the message shows what can be asked for.
+     */
+    private static String settingsRefusal(Settings requested, List<Pool> candidates) {
+        List<Difference> closest = candidates.stream()
+                .map(pool -> requested.differences(pool.settings()))
+                .min(java.util.Comparator.comparingInt(List::size))
+                .orElseThrow();
+        Difference first = closest.get(0);
+        String recorded = candidates.stream()
+                .map(pool -> pool.settings().differences(requested).stream()
+                        .filter(d -> d.setting().equals(first.setting()))
+                        .map(Difference::requested)
+                        .findFirst()
+                        .orElse(first.requested()))
+                .distinct()
+                .collect(Collectors.joining(", "));
+        return "The request's " + first.setting() + " is " + first.requested() + "; recorded with: " + recorded
+                + ". The replay only answers with the settings that were recorded.";
     }
 
     private static Reply refuse(String message) {
