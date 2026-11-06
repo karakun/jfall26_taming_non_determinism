@@ -205,12 +205,11 @@
   #llm1-prompt-container.fallback-active { border-left: 3px solid var(--orange); padding-left: 0.5rem; }
   #llm1-system-prompt { transition: all 0.3s ease; }
 
-  /* Naive guardrail box - appears below LLM2 when inactive */
+  /* Keyword guardrail box - always visible in Part 2, LLM2 dimmed when fault injection active */
   .llm2-wrapper { display: flex; flex-direction: column; gap: 0.5rem; }
   .naive-guardrail { display: none; }
-  body.naive-active .naive-guardrail { display: flex; }
-  body.naive-active #llm2-node,
-  body.naive-active #llm2-reply { opacity: 0.4; }
+  body.part2-enabled.naive-active #llm2-node,
+  body.part2-enabled.naive-active #llm2-reply { opacity: 0.4; }
   .naive-guardrail .chip { background: var(--amber-soft); color: var(--amber); }
   .matched-patterns {
     background: var(--slate-soft);
@@ -697,7 +696,7 @@
     margin-right: 0.4rem;
   }
   .security-guardrail-type.llm { background: var(--violet); color: #fff; }
-  .security-guardrail-type.naive { background: var(--amber); color: #fff; }
+  .security-guardrail-type.naive, .security-guardrail-type.keyword { background: var(--amber); color: #fff; }
 
   /* Guardrail probe categories */
   .security-category-label {
@@ -1225,6 +1224,8 @@
   body.part2-enabled .provider-status.exercise-part2 { display: inline-flex !important; }
   body.part2-enabled .failure-dropdown.exercise-part2 { display: block !important; }
   body.part2-enabled .separator.exercise-part2 { display: block !important; }
+  /* Part 2: Keyword guardrail always visible in Part 2 */
+  body.part2-enabled .naive-guardrail.exercise-part2 { display: flex !important; }
 
   /* Part 3: WAL panel - requires both part3 enabled AND transparent mode */
   body.part3-enabled.transparent .wal-panel.exercise-part3 { display: flex !important; }
@@ -1607,9 +1608,9 @@
           </div>
         </section>
 
-        <!-- Naive Guardrail (shown below LLM2 when inactive) -->
-        <section class="node naive-guardrail" id="naive-node" aria-labelledby="naive-head">
-          <h2 class="node-head" id="naive-head"><span class="chip">FALLBACK</span> Naive Guardrail</h2>
+        <!-- Keyword Guardrail (shown below LLM2 when inactive) - Part 2 only -->
+        <section class="node naive-guardrail exercise-part2" id="naive-node" aria-labelledby="naive-head">
+          <h2 class="node-head" id="naive-head"><span class="chip">FALLBACK</span> Keyword Guardrail</h2>
           <div class="prompt">
             <p class="label">Method</p>
             <p>Regex pattern matching for harmful keywords</p>
@@ -1633,10 +1634,10 @@
           </div>
         </section>
 
-        <!-- Naive Guardrail's result (shown below LLM2 reply when inactive) -->
-        <section class="node naive-guardrail" id="naive-reply" aria-labelledby="naive-reply-head">
+        <!-- Keyword Guardrail's result (shown below LLM2 reply when inactive) - Part 2 only -->
+        <section class="node naive-guardrail exercise-part2" id="naive-reply" aria-labelledby="naive-reply-head">
           <div class="head-row">
-            <h2 class="node-head" id="naive-reply-head">Naive Guardrail's result</h2>
+            <h2 class="node-head" id="naive-reply-head">Keyword Guardrail's result</h2>
             <span class="timing" id="naive-timing"></span>
           </div>
           <div id="naive-verdict"><p class="placeholder">Accept or reject?</p></div>
@@ -2040,7 +2041,7 @@
     try {
       const result = await post("/api/check", { advice: reply.value.trim() });
       if (result.guardrailType === "NAIVE") {
-        // Show naive guardrail result
+        // Show keyword guardrail result
         showNaiveVerdict(result.verdict, result.naiveResult);
         // Clear LLM2 verdict display
         verdictView.replaceChildren(el("p", "placeholder", "LLM 2 is inactive"));
@@ -2455,12 +2456,12 @@
       const response = await fetch("/api/fallback/status");
       if (response.ok) {
         const status = await response.json();
-        const isNaive = status.guardrailFailed || false;
-        guardrailTypeIndicator.textContent = isNaive ? "NAIVE" : "LLM";
-        guardrailTypeIndicator.className = "security-guardrail-type " + (isNaive ? "naive" : "llm");
-        guardrailTypeIndicator.title = isNaive
-          ? "Testing Naive Guardrail (keyword-based) - Guardrail fault injection is ON"
-          : "Testing LLM Guardrail (Mistral) - Guardrail fault injection is OFF";
+        const isKeyword = status.guardrailFailed || false;
+        guardrailTypeIndicator.textContent = isKeyword ? "KEYWORD" : "LLM";
+        guardrailTypeIndicator.className = "security-guardrail-type " + (isKeyword ? "naive" : "llm");
+        guardrailTypeIndicator.title = isKeyword
+          ? "Keyword Guardrail (pattern-based) - Guardrail fault injection is ON"
+          : "LLM Guardrail (Mistral) - Guardrail fault injection is OFF";
       }
     } catch (e) {
       console.error("Failed to update guardrail type indicator:", e);
