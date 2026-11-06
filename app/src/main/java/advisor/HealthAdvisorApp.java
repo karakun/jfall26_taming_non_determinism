@@ -472,7 +472,6 @@ public class HealthAdvisorApp {
         }
 
         List<WalEntry> entries = wal.list(limit);
-        System.out.println("WAL list: returning " + entries.size() + " entries (total: " + wal.count() + ")");
         String response = JSON.writeValueAsString(Map.of(
                 "entries", entries,
                 "total", wal.count()
