@@ -207,6 +207,8 @@
 
   /* Keyword guardrail box - always visible in Part 2, LLM2 dimmed when fault injection active */
   .llm2-wrapper { display: flex; flex-direction: column; gap: 0.5rem; }
+  /* In Part 1, make LLM2 nodes stretch to same height */
+  .llm2-wrapper > .node:first-child { flex: 1; }
   .naive-guardrail { display: none; }
   body.part2-enabled.naive-active #llm2-node,
   body.part2-enabled.naive-active #llm2-reply { opacity: 0.4; }
