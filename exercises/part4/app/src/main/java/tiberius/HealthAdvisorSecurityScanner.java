@@ -279,7 +279,7 @@ public class HealthAdvisorSecurityScanner {
             }
             content.append("Samples: ").append(samples).append("\n");
             content.append("ASR: ").append(String.format("%.1f%%", asr)).append("\n\n");
-            content.append("Prompt (with buff applied):\n").append(result.attackPrompt()).append("\n");
+            content.append("Prompt:\n").append(result.attackPrompt()).append("\n");
 
             // Add judge reasoning if available
             if (result.judgeReason() != null && !result.judgeReason().isEmpty()) {

@@ -15,6 +15,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import tiberius.HealthAdvisorSecurityScanner;
 import tiberius.HealthAdvisorGenerator;
 import tiberius.GatewayGenerator;
+import tiberius.GuardrailSecurityScanner;
 import tiberius.HealthcareBuffs;
 import tiberius.SecurityScanReport;
 import tiberius.SecurityScanResult;
@@ -64,10 +65,15 @@ public class HealthAdvisorApp {
     private static FileWriteAheadLog wal;
     private static Advisor advisor;
 
-    // Part 4: Tiberius Security Scanner
+    // Part 4: Tiberius Security Scanner (LLM1 Advisor)
     private static HealthAdvisorSecurityScanner securityScanner;
     private static SecurityScanReport currentScanReport;
     private static final ExecutorService scanExecutor = Executors.newSingleThreadExecutor();
+
+    // Part 4: Guardrail Security Scanner (LLM2 Guardrail)
+    private static GuardrailSecurityScanner guardrailScanner;
+    private static SecurityScanReport currentGuardrailScanReport;
+    private static final ExecutorService guardrailScanExecutor = Executors.newSingleThreadExecutor();
 
     private static final int DEFAULT_PORT = 8080;
 
@@ -137,7 +143,9 @@ public class HealthAdvisorApp {
         HealthAdvisorApp.appDir = appDir;
         llmModel = guardrail.model();  // Use same model for LLM-as-judge
         securityScanner = new HealthAdvisorSecurityScanner("http://localhost:" + port, wal, appDir, llmModel);
+        guardrailScanner = new GuardrailSecurityScanner("http://localhost:" + port, wal, appDir, llmModel);
         System.out.println("Tiberius Security Scanner initialized with LLM-as-judge: " + llmModel);
+        System.out.println("Guardrail Security Scanner initialized with LLM-as-judge: " + llmModel);
 
         HttpServer server = bind(port, share);
         server.setExecutor(Executors.newVirtualThreadPerTaskExecutor());
@@ -155,10 +163,15 @@ public class HealthAdvisorApp {
         server.createContext("/api/wal/list", HealthAdvisorApp::walList);
         server.createContext("/api/wal/retry", HealthAdvisorApp::walRetry);
 
-        // Part 4: Security scan endpoints
+        // Part 4: Security scan endpoints (LLM1 Advisor)
         server.createContext("/api/security/scan/start", HealthAdvisorApp::startSecurityScan);
         server.createContext("/api/security/scan/stop", HealthAdvisorApp::stopSecurityScan);
         server.createContext("/api/security/scan/status", HealthAdvisorApp::securityScanStatus);
+
+        // Part 4: Guardrail security scan endpoints (LLM2 Guardrail)
+        server.createContext("/api/security/guardrail/start", HealthAdvisorApp::startGuardrailScan);
+        server.createContext("/api/security/guardrail/stop", HealthAdvisorApp::stopGuardrailScan);
+        server.createContext("/api/security/guardrail/status", HealthAdvisorApp::guardrailScanStatus);
 
         // Part 4: Bias scan endpoints
         server.createContext("/api/bias/scan/start", HealthAdvisorApp::startBiasScan);
@@ -659,6 +672,127 @@ public class HealthAdvisorApp {
                 .filter(b -> b.getName().equalsIgnoreCase(name))
                 .findFirst()
                 .orElse(null);
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════════
+    // Part 4: Guardrail Security Scan Handlers (LLM2 Direct Testing)
+    // ══════════════════════════════════════════════════════════════════════════════
+
+    /** Part 4: Start a guardrail security scan (tests LLM2 directly) */
+    private static void startGuardrailScan(HttpExchange exchange) throws IOException {
+        if (!exchange.getRequestMethod().equals("POST")) {
+            send(exchange, 405, "application/json", JSON.writeValueAsString(Map.of("error", "Use POST.")));
+            return;
+        }
+
+        // Check if a scan is already running
+        if (guardrailScanner.isRunning()) {
+            send(exchange, 400, "application/json", JSON.writeValueAsString(Map.of(
+                    "error", "A guardrail scan is already running",
+                    "status", "running"
+            )));
+            return;
+        }
+
+        // Parse scan configuration from request body
+        String category = "ALL";
+        try {
+            JsonNode body = JSON.readTree(exchange.getRequestBody());
+            if (body.has("category")) {
+                category = body.get("category").asText();
+            }
+        } catch (Exception ignored) {
+            // Use defaults
+        }
+
+        // Determine which probes to run
+        List<GuardrailSecurityScanner.GuardrailProbe> probes = new ArrayList<>();
+        switch (category.toUpperCase()) {
+            case "INJECTION" -> probes.addAll(GuardrailSecurityScanner.INJECTION_PROBES);
+            case "SEMANTIC_EVASION" -> probes.addAll(GuardrailSecurityScanner.SEMANTIC_EVASION_PROBES);
+            case "FORMAT_PARSING" -> probes.addAll(GuardrailSecurityScanner.FORMAT_PARSING_PROBES);
+            default -> probes.addAll(GuardrailSecurityScanner.ALL_PROBES);
+        }
+
+        final List<GuardrailSecurityScanner.GuardrailProbe> finalProbes = probes;
+        final int expectedProbeCount = probes.size();
+
+        // Create report immediately so status updates work during scan
+        currentGuardrailScanReport = new SecurityScanReport();
+        currentGuardrailScanReport.setExpectedProbes(expectedProbeCount);
+
+        // Start scan in background
+        guardrailScanExecutor.submit(() -> {
+            guardrailScanner.scan(finalProbes, currentGuardrailScanReport, result -> {
+                System.out.println("Guardrail Scan: " + result.probeName() + " -> " + result.guardrailVerdict());
+            });
+        });
+
+        send(exchange, 200, "application/json", JSON.writeValueAsString(Map.of(
+                "status", "started",
+                "category", category,
+                "probeCount", expectedProbeCount
+        )));
+    }
+
+    /** Part 4: Stop the current guardrail scan */
+    private static void stopGuardrailScan(HttpExchange exchange) throws IOException {
+        if (!exchange.getRequestMethod().equals("POST")) {
+            send(exchange, 405, "application/json", JSON.writeValueAsString(Map.of("error", "Use POST.")));
+            return;
+        }
+
+        if (!guardrailScanner.isRunning()) {
+            send(exchange, 400, "application/json", JSON.writeValueAsString(Map.of(
+                    "error", "No guardrail scan is running",
+                    "status", "idle"
+            )));
+            return;
+        }
+
+        guardrailScanner.cancel();
+
+        send(exchange, 200, "application/json", JSON.writeValueAsString(Map.of(
+                "status", "cancelled"
+        )));
+    }
+
+    /** Part 4: Get guardrail scan status */
+    private static void guardrailScanStatus(HttpExchange exchange) throws IOException {
+        if (!exchange.getRequestMethod().equals("GET")) {
+            send(exchange, 405, "application/json", JSON.writeValueAsString(Map.of("error", "Use GET.")));
+            return;
+        }
+
+        Map<String, Object> status = new HashMap<>();
+        status.put("running", guardrailScanner.isRunning());
+
+        if (currentGuardrailScanReport != null) {
+            status.putAll(currentGuardrailScanReport.toSummary());
+            status.put("results", currentGuardrailScanReport.getResults());
+        } else {
+            status.put("totalProbes", 0);
+            status.put("successfulAttacks", 0);
+            status.put("blockedAttacks", 0);
+            status.put("attackSuccessRate", 0.0);
+            status.put("results", List.of());
+        }
+
+        // Add available categories
+        status.put("availableCategories", List.of("ALL", "INJECTION", "SEMANTIC_EVASION", "FORMAT_PARSING"));
+
+        // Add probe descriptions for UI
+        List<Map<String, String>> probeDescriptions = new ArrayList<>();
+        for (var probe : GuardrailSecurityScanner.ALL_PROBES) {
+            probeDescriptions.add(Map.of(
+                    "id", probe.id(),
+                    "name", probe.name(),
+                    "category", probe.category()
+            ));
+        }
+        status.put("probeDescriptions", probeDescriptions);
+
+        send(exchange, 200, "application/json", JSON.writeValueAsString(status));
     }
 
     // ══════════════════════════════════════════════════════════════════════════════

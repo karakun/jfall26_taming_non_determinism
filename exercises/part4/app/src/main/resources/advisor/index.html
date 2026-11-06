@@ -624,6 +624,93 @@
     color: var(--ink);
   }
   .security-dropdown.open .security-panel { display: block; }
+
+  /* Security Scan Tabs */
+  .security-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--line);
+    background: var(--slate-soft);
+    border-radius: 0.6rem 0.6rem 0 0;
+  }
+  .security-tab {
+    flex: 1;
+    padding: 0.5rem 0.8rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--ink);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+  }
+  .security-tab:first-child { border-radius: 0.6rem 0 0 0; }
+  .security-tab:last-child { border-radius: 0 0.6rem 0 0; }
+  .security-tab:hover { background: rgba(0, 0, 0, 0.05); color: var(--ink); }
+  .security-tab.active {
+    background: var(--card);
+    color: var(--violet);
+    border-bottom: 2px solid var(--violet);
+    margin-bottom: -1px;
+  }
+  .security-tab-content { display: none; }
+  .security-tab-content.active { display: block; }
+
+  /* Tab-specific controls within the panel */
+  .security-tab-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 0.8rem;
+    border-bottom: 1px solid var(--line);
+    background: var(--slate-soft);
+  }
+  .security-tab-controls .select-dropdown select {
+    font-size: 0.72rem;
+    padding: 0.2rem 1.2rem 0.2rem 0.5rem;
+    color: var(--ink);
+    background: var(--card);
+    border: 1px solid var(--line);
+  }
+  .security-tab-controls .select-dropdown select:hover {
+    background: var(--slate-soft);
+  }
+  .security-tab-controls .select-dropdown::after {
+    border-top-color: var(--ink);
+  }
+  .security-tab-controls .security-btn {
+    font-size: 0.72rem;
+    padding: 0.25rem 0.6rem;
+  }
+  .security-tab-controls .security-btn svg { width: 0.8rem; height: 0.8rem; }
+
+  /* Guardrail type indicator */
+  .security-guardrail-type {
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    margin-right: 0.4rem;
+  }
+  .security-guardrail-type.llm { background: var(--violet); color: #fff; }
+  .security-guardrail-type.naive { background: var(--amber); color: #fff; }
+
+  /* Guardrail probe categories */
+  .security-category-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--violet);
+    margin: 0.5rem 0 0.25rem 0;
+    padding: 0;
+  }
+  .security-category-label:first-child { margin-top: 0; }
+
   .security-panel-header {
     padding: 0.6rem 0.8rem;
     border-bottom: 1px solid var(--line);
@@ -645,6 +732,7 @@
     padding: 0.2rem 0.6rem;
     border-radius: 999px;
     font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    white-space: nowrap;
   }
   .security-asr-badge.good { background: var(--green); color: #fff; }
   .security-asr-badge.warning { background: var(--amber); color: #fff; }
@@ -785,6 +873,11 @@
     color: var(--violet);
     font-weight: 600;
   }
+  /* Guardrail scan indicator in WAL entries (G-SCAN) */
+  .wal-entry-request.guardrail-scan {
+    color: var(--orange);
+    font-weight: 600;
+  }
   .wal-entry-verdict.BLOCKED { color: var(--green); background: var(--green-soft); }
   .wal-entry-verdict.BYPASSED { color: var(--red); background: var(--red-soft); }
 
@@ -795,16 +888,18 @@
     font-size: 0.82rem;
     font-weight: 650;
     color: #fff;
-    background: var(--orange);
-    border: 1px solid var(--orange);
+    background: #ea580c;
+    border: 1px solid #ea580c;
     border-radius: 999px;
     padding: 0.3rem 0.75rem;
+    line-height: 1.2;
     cursor: pointer;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 0.35rem;
+    white-space: nowrap;
   }
-  .bias-btn:hover:not(:disabled) { background: #9a3412; }
+  .bias-btn:hover:not(:disabled) { background: #c2410c; }
   .bias-btn:disabled { opacity: 0.5; cursor: default; }
   .bias-btn svg { width: 0.9rem; height: 0.9rem; }
   .bias-btn.running { animation: pulse 1.5s ease-in-out infinite; }
@@ -1112,47 +1207,113 @@
         <div class="scan-row">
           <div class="security-dropdown" id="security-dropdown">
             <div class="security-controls" id="security-controls">
-              <div class="select-dropdown">
-                <select id="security-category" title="Attack category">
-                  <option value="ALL">All Categories</option>
-                  <option value="JAILBREAK">Jailbreak</option>
-                  <option value="PROMPT_INJECTION">Prompt Injection</option>
-                  <option value="MULTI_TURN">Multi-Turn</option>
-                </select>
-              </div>
-              <div class="select-dropdown">
-                <select id="security-buff" title="Healthcare buff">
-                  <option value="">No Buff</option>
-                  <option value="MedicalEmergency">Medical Emergency</option>
-                  <option value="DoctorAuthority">Doctor Authority</option>
-                  <option value="ConcernedParent">Concerned Parent</option>
-                  <option value="MedicalStudent">Medical Student</option>
-                  <option value="InsuranceClaim">Insurance Claim</option>
-                </select>
-              </div>
-              <button type="button" class="security-btn" id="security-scan-btn" title="Run security scan">
+              <button type="button" class="security-btn" id="security-panel-btn" title="Security scans">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
                   <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
                 </svg>
-                Run Scan
-              </button>
-              <button type="button" class="security-btn stop" id="security-stop-btn" title="Stop scan" style="display: none;">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
-                  <rect x="6" y="6" width="12" height="12"/>
+                Security
+                <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                  <path d="M6 9l6 6 6-6"/>
                 </svg>
-                Stop
               </button>
             </div>
-            <!-- Security Results Panel -->
+            <!-- Security Results Panel with Tabs -->
             <div class="security-panel" id="security-panel">
-              <div class="security-panel-header">
-                <h3 class="security-panel-title">Security Scan Results</h3>
-                <span class="security-asr-badge" id="security-asr-badge">--</span>
+              <!-- Tab Navigation -->
+              <div class="security-tabs">
+                <button type="button" class="security-tab active" data-tab="llm1">LLM1 Advisor</button>
+                <button type="button" class="security-tab" data-tab="llm2">LLM2 Guardrail</button>
               </div>
-              <div class="security-panel-body">
-                <div class="security-progress" id="security-progress"></div>
-                <div class="security-results-list" id="security-results-list">
-                  <div class="security-empty">No scan results yet</div>
+
+              <!-- LLM1 Advisor Tab -->
+              <div class="security-tab-content active" id="security-tab-llm1">
+                <div class="security-tab-controls">
+                  <div class="select-dropdown">
+                    <select id="security-category" title="Attack category">
+                      <option value="ALL">All Categories</option>
+                      <option value="JAILBREAK">Jailbreak</option>
+                      <option value="PROMPT_INJECTION">Prompt Injection</option>
+                      <option value="MULTI_TURN">Multi-Turn</option>
+                    </select>
+                  </div>
+                  <div class="select-dropdown">
+                    <select id="security-buff" title="Healthcare buff">
+                      <option value="">No Buff</option>
+                      <option value="MedicalEmergency">Medical Emergency</option>
+                      <option value="DoctorAuthority">Doctor Authority</option>
+                      <option value="ConcernedParent">Concerned Parent</option>
+                      <option value="MedicalStudent">Medical Student</option>
+                      <option value="InsuranceClaim">Insurance Claim</option>
+                    </select>
+                  </div>
+                  <button type="button" class="security-btn" id="security-scan-btn" title="Run LLM1 scan">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                      <path d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
+                      <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    Run
+                  </button>
+                  <button type="button" class="security-btn stop" id="security-stop-btn" title="Stop scan" style="display: none;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                      <rect x="6" y="6" width="12" height="12"/>
+                    </svg>
+                    Stop
+                  </button>
+                </div>
+                <div class="security-panel-header">
+                  <h3 class="security-panel-title">LLM1 Advisor Scan Results</h3>
+                  <span class="security-asr-badge" id="security-asr-badge">--</span>
+                </div>
+                <div class="security-panel-body">
+                  <div class="security-progress" id="security-progress"></div>
+                  <div class="security-results-list" id="security-results-list">
+                    <div class="security-empty">No scan results yet</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- LLM2 Guardrail Tab -->
+              <div class="security-tab-content" id="security-tab-llm2">
+                <div class="security-tab-controls">
+                  <div class="select-dropdown">
+                    <select id="guardrail-category" title="Attack category">
+                      <option value="ALL">All Probes (7)</option>
+                      <option value="INJECTION">A. Injection (3)</option>
+                      <option value="SEMANTIC_EVASION">B. Semantic Evasion (3)</option>
+                      <option value="FORMAT_PARSING">C. Format Attack (1)</option>
+                    </select>
+                  </div>
+                  <button type="button" class="security-btn" id="guardrail-scan-btn" title="Run LLM2 scan">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                      <path d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
+                      <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    Run
+                  </button>
+                  <button type="button" class="security-btn stop" id="guardrail-stop-btn" title="Stop scan" style="display: none;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                      <rect x="6" y="6" width="12" height="12"/>
+                    </svg>
+                    Stop
+                  </button>
+                </div>
+                <div class="security-panel-header">
+                  <h3 class="security-panel-title">LLM2 Guardrail Scan Results</h3>
+                  <span class="security-guardrail-type" id="guardrail-type-indicator" title="Which guardrail is being tested">LLM</span>
+                  <span class="security-asr-badge" id="guardrail-asr-badge">--</span>
+                </div>
+                <div class="security-panel-body">
+                  <div class="security-progress" id="guardrail-progress"></div>
+                  <div class="security-results-list" id="guardrail-results-list">
+                    <div class="security-empty">
+                      <p class="security-category-label">A. Injection Attacks</p>
+                      <p style="font-size: 0.72rem; color: var(--muted); margin: 0.2rem 0;">G1: Embedded Verdict · G2: Fake Verdict + Task Switch · G4: Authority Pre-Justification</p>
+                      <p class="security-category-label">B. Semantic Evasion</p>
+                      <p style="font-size: 0.72rem; color: var(--muted); margin: 0.2rem 0;">G6: Context Blindness · G7: Hedged Harm · G8: Language Shift</p>
+                      <p class="security-category-label">C. Format & Parsing Attacks</p>
+                      <p style="font-size: 0.72rem; color: var(--muted); margin: 0.2rem 0;">G9: Polarity Confusion</p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1181,7 +1342,7 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
                   <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
                 </svg>
-                <span id="bias-btn-text">Run Scan</span>
+                <span id="bias-btn-text">Run Bias Scan</span>
               </button>
             </div>
             <!-- Bias Results Panel (summary only - details go to WAL) -->
@@ -1859,6 +2020,8 @@
   const walRetryBtn = document.getElementById("wal-retry-btn");
   let selectedWalEntry = null;
   let selectedWalRequest = null;
+  let selectedWalResponse = null;
+  let selectedWalType = null;
 
   function formatTime(timestamp) {
     const date = new Date(timestamp);
@@ -1895,6 +2058,12 @@
 
       const requestEl = document.createElement("div");
       requestEl.className = "wal-entry-request";
+      // Add special styling for security scan entries
+      if (entry.guardrailType === "SECURITY_SCAN") {
+        requestEl.classList.add("security-scan");
+      } else if (entry.guardrailType === "GUARDRAIL_SCAN") {
+        requestEl.classList.add("guardrail-scan");
+      }
       requestEl.textContent = truncateRequest(entry.request);
       requestEl.title = entry.request; // Full text on hover
 
@@ -1953,10 +2122,10 @@
       entryEl.append(radio, content, verdict, time, details);
 
       // Click handler for selection
-      entryEl.addEventListener("click", () => selectWalEntry(entry.entryId, entry.request, entryEl, radio));
+      entryEl.addEventListener("click", () => selectWalEntry(entry.entryId, entry.request, entry.response, entry.guardrailType, entryEl, radio));
       radio.addEventListener("click", (e) => {
         e.stopPropagation();
-        selectWalEntry(entry.entryId, entry.request, entryEl, radio);
+        selectWalEntry(entry.entryId, entry.request, entry.response, entry.guardrailType, entryEl, radio);
       });
 
       // Double-click handler for expand/collapse
@@ -1975,7 +2144,7 @@
     return div.innerHTML;
   }
 
-  function selectWalEntry(entryId, request, entryEl, radio) {
+  function selectWalEntry(entryId, request, response, guardrailType, entryEl, radio) {
     // Deselect previous
     const prev = walEntries.querySelector(".wal-entry.selected");
     if (prev) prev.classList.remove("selected");
@@ -1985,6 +2154,8 @@
     radio.checked = true;
     selectedWalEntry = entryId;
     selectedWalRequest = request;
+    selectedWalResponse = response;
+    selectedWalType = guardrailType;
     walRetryBtn.disabled = false;
   }
 
@@ -2010,7 +2181,39 @@
   async function retryWalEntry() {
     if (!selectedWalEntry) return;
 
-    // Fill the question input with the original request
+    // For G-SCAN entries: put harmful advice in reply field (LLM1's reply)
+    // so user can click "Check this reply" to test the guardrail
+    if (selectedWalType === "GUARDRAIL_SCAN") {
+      let harmfulAdvice = null;
+
+      // New format: request contains [G-SCAN:Gx] followed by harmful advice
+      const newFormatMatch = selectedWalRequest.match(/^\[G-SCAN:[^\]]+\]\s*(.+)$/s);
+      if (newFormatMatch && newFormatMatch[1].trim().length > 0) {
+        harmfulAdvice = newFormatMatch[1].trim();
+      }
+      // Old format: extract from response field after "Harmful Advice Sent to Guardrail:"
+      else if (selectedWalResponse) {
+        const marker = "Harmful Advice Sent to Guardrail:\n";
+        const startIdx = selectedWalResponse.indexOf(marker);
+        if (startIdx !== -1) {
+          const adviceStart = startIdx + marker.length;
+          // Find the end (next section starts with "\n---" or "\n\n")
+          let endIdx = selectedWalResponse.indexOf("\n---", adviceStart);
+          if (endIdx === -1) endIdx = selectedWalResponse.indexOf("\n\n", adviceStart);
+          if (endIdx === -1) endIdx = selectedWalResponse.length;
+          harmfulAdvice = selectedWalResponse.substring(adviceStart, endIdx).trim();
+        }
+      }
+
+      if (harmfulAdvice) {
+        reply.value = harmfulAdvice;
+        replyFromLlm1 = harmfulAdvice;
+        update();
+      }
+      return;
+    }
+
+    // For regular entries: fill the question input with the original request
     if (selectedWalRequest) {
       question.value = selectedWalRequest;
       update();
@@ -2077,6 +2280,7 @@
   // ══════════════════════════════════════════════════════════════════════════════
 
   const securityDropdown = document.getElementById("security-dropdown");
+  const securityPanelBtn = document.getElementById("security-panel-btn");
   const securityScanBtn = document.getElementById("security-scan-btn");
   const securityStopBtn = document.getElementById("security-stop-btn");
   const securityCategory = document.getElementById("security-category");
@@ -2085,8 +2289,56 @@
   const securityProgress = document.getElementById("security-progress");
   const securityResultsList = document.getElementById("security-results-list");
 
+  // LLM2 Guardrail scan elements
+  const guardrailScanBtn = document.getElementById("guardrail-scan-btn");
+  const guardrailStopBtn = document.getElementById("guardrail-stop-btn");
+  const guardrailCategory = document.getElementById("guardrail-category");
+  const guardrailAsrBadge = document.getElementById("guardrail-asr-badge");
+  const guardrailProgress = document.getElementById("guardrail-progress");
+  const guardrailResultsList = document.getElementById("guardrail-results-list");
+  const guardrailTypeIndicator = document.getElementById("guardrail-type-indicator");
+
+  // Security tabs
+  const securityTabs = document.querySelectorAll(".security-tab");
+  const securityTabContents = document.querySelectorAll(".security-tab-content");
+
   let securityScanPolling = null;
   let securityScanRunning = false;
+  let guardrailScanPolling = null;
+  let guardrailScanRunning = false;
+
+  // Tab switching
+  securityTabs.forEach(tab => {
+    tab.addEventListener("click", () => {
+      const targetTab = tab.dataset.tab;
+      securityTabs.forEach(t => t.classList.remove("active"));
+      securityTabContents.forEach(c => c.classList.remove("active"));
+      tab.classList.add("active");
+      document.getElementById(`security-tab-${targetTab}`).classList.add("active");
+      // Update guardrail type indicator when switching to LLM2 tab
+      if (targetTab === "llm2") {
+        updateGuardrailTypeIndicator();
+      }
+    });
+  });
+
+  // Update guardrail type indicator based on fault injection status
+  async function updateGuardrailTypeIndicator() {
+    try {
+      const response = await fetch("/api/fallback/status");
+      if (response.ok) {
+        const status = await response.json();
+        const isNaive = status.guardrailFailed || false;
+        guardrailTypeIndicator.textContent = isNaive ? "NAIVE" : "LLM";
+        guardrailTypeIndicator.className = "security-guardrail-type " + (isNaive ? "naive" : "llm");
+        guardrailTypeIndicator.title = isNaive
+          ? "Testing Naive Guardrail (keyword-based) - Guardrail fault injection is ON"
+          : "Testing LLM Guardrail (Mistral) - Guardrail fault injection is OFF";
+      }
+    } catch (e) {
+      console.error("Failed to update guardrail type indicator:", e);
+    }
+  }
 
   function openSecurityPanel() {
     securityDropdown.classList.add("open");
@@ -2095,6 +2347,16 @@
   function closeSecurityPanel() {
     securityDropdown.classList.remove("open");
   }
+
+  // Toggle security panel on button click
+  securityPanelBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (securityDropdown.classList.contains("open")) {
+      closeSecurityPanel();
+    } else {
+      openSecurityPanel();
+    }
+  });
 
   // Close panel when clicking outside
   document.addEventListener("click", (e) => {
@@ -2307,6 +2569,253 @@
 
   // Initial security status check
   pollSecurityStatus();
+
+  // ══════════════════════════════════════════════════════════════════════════════
+  // Part 4: Guardrail Security Scan Controls (LLM2)
+  // ══════════════════════════════════════════════════════════════════════════════
+
+  async function startGuardrailScan() {
+    const category = guardrailCategory.value;
+
+    // Update indicator before starting scan
+    await updateGuardrailTypeIndicator();
+
+    try {
+      const response = await fetch("/api/security/guardrail/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ category })
+      });
+
+      if (response.ok) {
+        guardrailScanRunning = true;
+        guardrailScanBtn.style.display = "none";
+        guardrailStopBtn.style.display = "flex";
+        guardrailAsrBadge.textContent = "...";
+        guardrailAsrBadge.className = "security-asr-badge running";
+        guardrailProgress.textContent = "Starting guardrail scan...";
+        guardrailResultsList.innerHTML = '<div class="security-empty">Scanning...</div>';
+
+        // Start polling for status
+        guardrailScanPolling = setInterval(pollGuardrailStatus, 1000);
+      }
+    } catch (e) {
+      console.error("Failed to start guardrail scan:", e);
+      guardrailProgress.textContent = "Error starting scan";
+    }
+  }
+
+  async function stopGuardrailScan() {
+    try {
+      await fetch("/api/security/guardrail/stop", { method: "POST" });
+      guardrailScanRunning = false;
+      resetGuardrailButtons();
+      if (guardrailScanPolling) {
+        clearInterval(guardrailScanPolling);
+        guardrailScanPolling = null;
+      }
+    } catch (e) {
+      console.error("Failed to stop guardrail scan:", e);
+    }
+  }
+
+  async function pollGuardrailStatus() {
+    try {
+      const response = await fetch("/api/security/guardrail/status");
+      const status = await response.json();
+
+      // Update running state
+      guardrailScanRunning = status.running;
+
+      // Refresh WAL entries during each poll to show new G-SCAN results immediately
+      fetchWalEntries();
+
+      if (!status.running && guardrailScanPolling) {
+        clearInterval(guardrailScanPolling);
+        guardrailScanPolling = null;
+        resetGuardrailButtons();
+      }
+
+      // Update ASR badge
+      if (status.totalProbes > 0) {
+        const asr = status.attackSuccessRate || 0;
+        guardrailAsrBadge.textContent = asr.toFixed(0) + "% ASR";
+        guardrailAsrBadge.classList.remove("running", "good", "warning", "bad");
+        if (status.running) {
+          guardrailAsrBadge.classList.add("running");
+        } else if (asr === 0) {
+          guardrailAsrBadge.classList.add("good");
+        } else if (asr <= 20) {
+          guardrailAsrBadge.classList.add("warning");
+        } else {
+          guardrailAsrBadge.classList.add("bad");
+        }
+      }
+
+      // Update progress
+      const completed = status.completedProbes || 0;
+      const total = status.expectedProbes || status.totalProbes || 0;
+      if (status.running) {
+        guardrailProgress.textContent = `Scanning probe ${completed}/${total}...`;
+      } else if (total > 0) {
+        guardrailProgress.textContent = `Completed: ${completed}/${total} probes`;
+      }
+
+      // Render results grouped by category
+      renderGuardrailResults(status);
+
+    } catch (e) {
+      console.error("Error polling guardrail status:", e);
+    }
+  }
+
+  function renderGuardrailResults(status) {
+    if (status.results && status.results.length > 0) {
+      try {
+        // Group results by category
+        const grouped = {
+          INJECTION: [],
+          SEMANTIC_EVASION: [],
+          FORMAT_PARSING: []
+        };
+
+        status.results.forEach(result => {
+          const cat = result.category || "INJECTION";
+          if (grouped[cat]) {
+            grouped[cat].push(result);
+          }
+        });
+
+        let html = "";
+
+        // A. Injection Attacks
+        if (grouped.INJECTION.length > 0 || status.running) {
+          html += '<p class="security-category-label">A. Injection Attacks</p>';
+          grouped.INJECTION.forEach((result, idx) => {
+            html += renderGuardrailResultItem(result, `inj-${idx}`);
+          });
+        }
+
+        // B. Semantic Evasion
+        if (grouped.SEMANTIC_EVASION.length > 0 || status.running) {
+          html += '<p class="security-category-label">B. Semantic Evasion</p>';
+          grouped.SEMANTIC_EVASION.forEach((result, idx) => {
+            html += renderGuardrailResultItem(result, `sem-${idx}`);
+          });
+        }
+
+        // C. Format & Parsing Attacks
+        if (grouped.FORMAT_PARSING.length > 0 || status.running) {
+          html += '<p class="security-category-label">C. Format & Parsing Attacks</p>';
+          grouped.FORMAT_PARSING.forEach((result, idx) => {
+            html += renderGuardrailResultItem(result, `fmt-${idx}`);
+          });
+        }
+
+        guardrailResultsList.innerHTML = html || '<div class="security-empty">No results yet</div>';
+
+        // Add click handlers for expandable items
+        guardrailResultsList.querySelectorAll(".security-result-item.expandable").forEach(item => {
+          item.addEventListener("click", () => {
+            const idx = item.dataset.idx;
+            const details = document.getElementById(`guardrail-details-${idx}`);
+            if (details) {
+              details.classList.toggle("open");
+              const expandIcon = item.querySelector(".security-result-expand");
+              if (expandIcon) {
+                expandIcon.textContent = details.classList.contains("open") ? "-" : "+";
+              }
+            }
+          });
+        });
+      } catch (e) {
+        console.error("Error rendering guardrail results:", e);
+        guardrailResultsList.innerHTML = '<div class="security-empty">Error rendering results</div>';
+      }
+    } else if (!status.running) {
+      // Show probe descriptions when no results
+      guardrailResultsList.innerHTML = `
+        <div class="security-empty">
+          <p class="security-category-label">A. Injection Attacks</p>
+          <p style="font-size: 0.72rem; color: var(--muted); margin: 0.2rem 0;">G1: Embedded Verdict · G2: Fake Verdict + Task Switch · G4: Authority Pre-Justification</p>
+          <p class="security-category-label">B. Semantic Evasion</p>
+          <p style="font-size: 0.72rem; color: var(--muted); margin: 0.2rem 0;">G6: Context Blindness · G7: Hedged Harm · G8: Language Shift</p>
+          <p class="security-category-label">C. Format & Parsing Attacks</p>
+          <p style="font-size: 0.72rem; color: var(--muted); margin: 0.2rem 0;">G9: Polarity Confusion</p>
+        </div>`;
+    }
+  }
+
+  function renderGuardrailResultItem(result, idx) {
+    const verdictClass = result.guardrailVerdict === "BYPASSED" ? "bypassed" : "blocked";
+    const verdictText = result.guardrailVerdict || "UNKNOWN";
+
+    let html = `
+      <div class="security-result-item expandable" data-idx="${idx}">
+        <span class="security-result-name">${result.probeId}: ${result.probeName}</span>
+        <span class="security-result-expand">+</span>
+        <span class="security-result-verdict ${verdictClass}">${verdictText}</span>
+      </div>`;
+
+    // Add expandable details
+    html += `<div class="security-result-details" id="guardrail-details-${idx}">`;
+
+    // Show the harmful advice that was sent
+    if (result.attackPrompt) {
+      html += `
+        <div class="security-detail-section">
+          <div class="security-detail-label">Harmful Advice Sent</div>
+          <div class="security-detail-content">${escapeHtml(result.attackPrompt)}</div>
+        </div>`;
+    }
+
+    // Show judge/detector reasoning
+    if (result.judgeReason) {
+      html += `
+        <div class="security-detail-section">
+          <div class="security-detail-label">Detector Analysis</div>
+          <div class="security-detail-content">${escapeHtml(result.judgeReason)}</div>
+        </div>`;
+    }
+
+    // Show guardrail responses
+    if (result.allResponses && result.allResponses.length > 0) {
+      html += `<div class="security-detail-section"><div class="security-detail-label">Guardrail Responses</div>`;
+      result.allResponses.forEach((resp, i) => {
+        html += `<div class="security-response-item">
+          <div class="security-response-header">Response ${i + 1}</div>
+          <div class="security-detail-content">${escapeHtml(resp)}</div>
+        </div>`;
+      });
+      html += `</div>`;
+    }
+
+    html += `</div>`;
+    return html;
+  }
+
+  function escapeHtml(text) {
+    if (!text) return "";
+    return text
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  function resetGuardrailButtons() {
+    guardrailScanBtn.style.display = "flex";
+    guardrailStopBtn.style.display = "none";
+    guardrailStopBtn.classList.remove("running");
+  }
+
+  guardrailScanBtn.addEventListener("click", startGuardrailScan);
+  guardrailStopBtn.addEventListener("click", stopGuardrailScan);
+
+  // Initial guardrail status check and type indicator update
+  pollGuardrailStatus();
+  updateGuardrailTypeIndicator();
 
   // ══════════════════════════════════════════════════════════════════════════════
   // Part 4: Bias Scan Controls
