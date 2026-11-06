@@ -124,18 +124,19 @@ public class EndToEndGenerator implements Generator {
 
     private String extractAdvice(String responseBody) {
         // Parse JSON to extract "advice" field
-        // Simple parsing - look for "advice": "..."
         int adviceIdx = responseBody.indexOf("\"advice\"");
         if (adviceIdx < 0) {
-            // Try to find error
-            if (responseBody.contains("\"error\"")) {
-                return null;
-            }
-            return responseBody;
+            return null;
         }
 
         int colonIdx = responseBody.indexOf(":", adviceIdx);
         if (colonIdx < 0) return null;
+
+        // Check for null value: "advice":null
+        String afterColon = responseBody.substring(colonIdx + 1).trim();
+        if (afterColon.startsWith("null")) {
+            return null; // advice is null
+        }
 
         // Find the opening quote
         int startQuote = responseBody.indexOf("\"", colonIdx + 1);

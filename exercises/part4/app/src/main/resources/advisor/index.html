@@ -1170,6 +1170,68 @@
     font-weight: 700;
     color: var(--orange);
   }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     Exercise Toggle Pills
+     ═══════════════════════════════════════════════════════════════════════════ */
+  .exercise-pills {
+    display: flex;
+    gap: 0.3rem;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 999px;
+    padding: 0.2rem;
+  }
+  .exercise-pill {
+    font: inherit;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.7);
+    background: transparent;
+    border: none;
+    border-radius: 999px;
+    padding: 0.25rem 0.6rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+  }
+  .exercise-pill:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.15);
+  }
+  .exercise-pill.active {
+    color: var(--teal-dark);
+    background: #fff;
+    font-weight: 700;
+  }
+  .exercise-pill.always-on {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.25);
+    cursor: default;
+    font-weight: 700;
+  }
+  .exercise-pill.locked {
+    cursor: not-allowed;
+  }
+  .exercise-pill.active.locked {
+    background: rgba(255, 255, 255, 0.6);
+  }
+
+  /* Exercise section visibility - hidden when exercise is disabled */
+  .exercise-part2 { display: none !important; }
+  .exercise-part3 { display: none !important; }
+  .exercise-part4 { display: none !important; }
+
+  /* Part 2: Restore original display values when enabled */
+  body.part2-enabled .provider-status.exercise-part2 { display: inline-flex !important; }
+  body.part2-enabled .failure-dropdown.exercise-part2 { display: block !important; }
+  body.part2-enabled .separator.exercise-part2 { display: block !important; }
+
+  /* Part 3: WAL panel - requires both part3 enabled AND transparent mode */
+  body.part3-enabled.transparent .wal-panel.exercise-part3 { display: flex !important; }
+
+  /* Part 4: Security controls */
+  body.part4-enabled .scan-controls-container.exercise-part4 { display: flex !important; }
+  body.part4-enabled .separator.exercise-part4 { display: block !important; }
 </style>
 </head>
 <body class="opaque">
@@ -1183,10 +1245,18 @@
       </svg>
       <div>
         <h1>Health Advisor</h1>
-        <p>Part 4: Tiberius Security Demo</p>
+        <p>Workshop Exercises</p>
       </div>
     </div>
     <div class="header-controls">
+      <!-- Exercise Toggle Pills -->
+      <div class="exercise-pills" role="group" aria-label="Exercise selection">
+        <button type="button" class="exercise-pill always-on" data-exercise="1" title="Part 1: Basic Health Advisor (always on)">Part 1</button>
+        <button type="button" class="exercise-pill" data-exercise="2" title="Part 2: Fallback Mechanism">Part 2</button>
+        <button type="button" class="exercise-pill" data-exercise="3" title="Part 3: Write-Ahead Log">Part 3</button>
+        <button type="button" class="exercise-pill" data-exercise="4" title="Part 4: Security Testing">Part 4</button>
+      </div>
+      <span class="separator"></span>
       <!-- Mode switch: Opaque / Transparent -->
       <div class="mode">
         <div class="switch" role="group" aria-label="View mode">
@@ -1200,9 +1270,9 @@
           </button>
         </div>
       </div>
-      <span class="separator"></span>
+      <span class="separator exercise-part4"></span>
       <!-- Part 4: All Scan Controls (stacked vertically) -->
-      <div class="scan-controls-container">
+      <div class="scan-controls-container exercise-part4">
         <!-- Row 1: Security Scan -->
         <div class="scan-row">
           <div class="security-dropdown" id="security-dropdown">
@@ -1352,11 +1422,11 @@
                   <div class="security-results-list" id="e2e-results-list">
                     <div class="security-empty">
                       <p class="security-category-label">A. Direct Chat Vector</p>
-                      <p style="font-size: 0.72rem; color: var(--muted); margin: 0.2rem 0;">E1: Fake Reviewer Note (G1) · E2: Authority Citation (G4) · E3: Polarity Tag (G9) · E4: Language Switch (G10) · E5: Context Stripped (G6)</p>
+                      <p style="font-size: 0.72rem; color: var(--muted); margin: 0.2rem 0;">E1: Fake Reviewer Note (G1) · E2: Authority Citation (G4) · E3: harmful:false Tag (G9) · E4: Language Switch (G10) · E5: Context Stripped (G6)</p>
                       <p class="security-category-label">B. Document Injection</p>
                       <p style="font-size: 0.72rem; color: var(--muted); margin: 0.2rem 0;">E6: Fake Verdict via Note (G2) · E7: Authority + Tag Stacked (G4+G1)</p>
                       <p class="security-category-label">C. Multi-Turn Delivery</p>
-                      <p style="font-size: 0.72rem; color: var(--muted); margin: 0.2rem 0;">E8: Crescendo into Payload (G1+Trust)</p>
+                      <p style="font-size: 0.72rem; color: var(--muted); margin: 0.2rem 0;">E8: Robitussin + Sertraline (3 turns)</p>
                     </div>
                   </div>
                 </div>
@@ -1435,9 +1505,9 @@
           </div>
         </div>
       </div>
-      <span class="separator"></span>
+      <span class="separator exercise-part2"></span>
       <!-- Part 2: Provider status indicator -->
-      <div class="provider-status" id="provider-status">
+      <div class="provider-status exercise-part2" id="provider-status">
         <span class="label">Provider:</span>
         <span class="name" id="provider-name">loading...</span>
         <span class="health-indicator" id="health-indicator">
@@ -1446,7 +1516,7 @@
         </span>
       </div>
       <!-- Part 2: Failure injection dropdown -->
-      <div class="failure-dropdown" id="failure-dropdown">
+      <div class="failure-dropdown exercise-part2" id="failure-dropdown">
         <button type="button" class="failure-btn" id="failure-btn" title="Failure injection controls">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
             <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
@@ -1586,7 +1656,7 @@
   </section>
 
   <!-- Part 3: WAL Live Feed Panel -->
-  <section class="wal-panel" id="wal-panel" aria-label="Write-Ahead Log">
+  <section class="wal-panel exercise-part3" id="wal-panel" aria-label="Write-Ahead Log">
     <div class="wal-header">
       <h2>
         <span class="wal-chip">WAL</span>
@@ -1609,7 +1679,7 @@
   </section>
 </main>
 
-<footer>Part 4 Exercise: Tiberius Security Testing</footer>
+<footer>Health Advisor Workshop - Taming Non-Determinism</footer>
 
 <script>
   const LABELS = { ACCEPTED: "Accepted", REJECTED: "Rejected", UNREADABLE: "Unreadable verdict", GATEWAY_ERROR: "Gateway error" };
@@ -1860,7 +1930,9 @@
   // Mode: opaque shows what the patient sees; transparent opens up the flow.
   const modeButtons = document.querySelectorAll(".switch button");
   function setMode(mode) {
-    document.body.className = mode;
+    // Toggle mode classes without affecting part-enabled classes
+    document.body.classList.remove("opaque", "transparent");
+    document.body.classList.add(mode);
     for (const button of modeButtons) button.setAttribute("aria-pressed", button.dataset.mode === mode);
     history.replaceState(null, "", mode === "transparent" ? "#transparent" : location.pathname);
   }
@@ -3373,6 +3445,122 @@
   }
 
   fingerprintBtn.addEventListener("click", startFingerprint);
+
+  // ══════════════════════════════════════════════════════════════════════════════
+  // Exercise Toggle System
+  // Dependencies: Part 3 requires Part 2, Part 4 requires Part 2 + Part 3
+  // ══════════════════════════════════════════════════════════════════════════════
+
+  const EXERCISE_STORAGE_KEY = "healthAdvisor.enabledExercises";
+  const exercisePills = document.querySelectorAll(".exercise-pill[data-exercise]");
+
+  // Load saved exercise state from localStorage
+  function loadExerciseState() {
+    const saved = localStorage.getItem(EXERCISE_STORAGE_KEY);
+    if (saved) {
+      try {
+        return normalizeState(JSON.parse(saved));
+      } catch (e) {
+        console.error("Failed to parse exercise state:", e);
+      }
+    }
+    // Default: only Part 1 enabled (Part 1 is always on, others off)
+    return { "2": false, "3": false, "4": false };
+  }
+
+  // Normalize state to enforce dependencies
+  function normalizeState(state) {
+    // Part 4 requires Part 2 and Part 3
+    if (state["4"]) {
+      state["2"] = true;
+      state["3"] = true;
+    }
+    // Part 3 requires Part 2
+    if (state["3"]) {
+      state["2"] = true;
+    }
+    return state;
+  }
+
+  // Save exercise state to localStorage
+  function saveExerciseState(state) {
+    localStorage.setItem(EXERCISE_STORAGE_KEY, JSON.stringify(state));
+  }
+
+  // Check if an exercise can be toggled off
+  function canToggleOff(exerciseNum, state) {
+    // Part 2 cannot be turned off if Part 3 or Part 4 is on
+    if (exerciseNum === "2" && (state["3"] || state["4"])) {
+      return false;
+    }
+    // Part 3 cannot be turned off if Part 4 is on
+    if (exerciseNum === "3" && state["4"]) {
+      return false;
+    }
+    return true;
+  }
+
+  // Apply exercise state to body classes and pills
+  function applyExerciseState(state) {
+    // Update body classes
+    document.body.classList.toggle("part2-enabled", state["2"] === true);
+    document.body.classList.toggle("part3-enabled", state["3"] === true);
+    document.body.classList.toggle("part4-enabled", state["4"] === true);
+
+    // Update pill active states and locked states
+    exercisePills.forEach(pill => {
+      const exercise = pill.dataset.exercise;
+      if (exercise === "1") {
+        // Part 1 is always on
+        pill.classList.add("always-on");
+        pill.classList.remove("locked");
+      } else {
+        const isActive = state[exercise] === true;
+        const isLocked = isActive && !canToggleOff(exercise, state);
+        pill.classList.toggle("active", isActive);
+        pill.classList.toggle("locked", isLocked);
+        pill.title = isLocked
+          ? `Part ${exercise} is required by Part ${exercise === "2" ? (state["4"] ? "4" : "3") : "4"}`
+          : pill.dataset.originalTitle || pill.title;
+      }
+    });
+  }
+
+  // Toggle an exercise on/off
+  function toggleExercise(exerciseNum) {
+    if (exerciseNum === "1") return; // Part 1 is always on
+
+    const state = loadExerciseState();
+
+    // Check if we're trying to turn off a locked exercise
+    if (state[exerciseNum] && !canToggleOff(exerciseNum, state)) {
+      return; // Can't toggle off - it's required by a higher part
+    }
+
+    state[exerciseNum] = !state[exerciseNum];
+
+    // Normalize to enforce dependencies (turning on Part 3/4 turns on prerequisites)
+    normalizeState(state);
+
+    saveExerciseState(state);
+    applyExerciseState(state);
+  }
+
+  // Store original titles for pills
+  exercisePills.forEach(pill => {
+    pill.dataset.originalTitle = pill.title;
+  });
+
+  // Initialize exercise toggles
+  exercisePills.forEach(pill => {
+    pill.addEventListener("click", () => {
+      const exercise = pill.dataset.exercise;
+      toggleExercise(exercise);
+    });
+  });
+
+  // Apply initial state on page load
+  applyExerciseState(loadExerciseState());
 </script>
 </body>
 </html>

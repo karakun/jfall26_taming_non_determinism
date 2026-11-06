@@ -151,9 +151,7 @@ public class HealthAdvisorApp {
         securityScanner = new HealthAdvisorSecurityScanner("http://localhost:" + port, wal, appDir, llmModel);
         guardrailScanner = new GuardrailSecurityScanner("http://localhost:" + port, wal, appDir, llmModel);
         e2eScanner = new EndToEndSecurityScanner("http://localhost:" + port, wal, appDir, llmModel);
-        System.out.println("Tiberius Security Scanner initialized with LLM-as-judge: " + llmModel);
-        System.out.println("Guardrail Security Scanner initialized with LLM-as-judge: " + llmModel);
-        System.out.println("End-to-End Security Scanner initialized with LLM-as-judge: " + llmModel);
+        System.out.println("Tiberius Scanners initialized (LLM1, LLM2, E2E) with judge: " + llmModel);
 
         HttpServer server = bind(port, share);
         server.setExecutor(Executors.newVirtualThreadPerTaskExecutor());
@@ -840,7 +838,7 @@ public class HealthAdvisorApp {
         }
 
         // Determine which probes to run
-        List<EndToEndSecurityScanner.EndToEndProbe> probes = new ArrayList<>();
+        List<HealthAdvisorSecurityScanner.AttackProbe> probes = new ArrayList<>();
         switch (category.toUpperCase()) {
             case "DIRECT_CHAT" -> probes.addAll(EndToEndSecurityScanner.DIRECT_CHAT_PROBES);
             case "DOCUMENT_INJECTION" -> probes.addAll(EndToEndSecurityScanner.DOCUMENT_INJECTION_PROBES);
@@ -848,7 +846,7 @@ public class HealthAdvisorApp {
             default -> probes.addAll(EndToEndSecurityScanner.ALL_PROBES);
         }
 
-        final List<EndToEndSecurityScanner.EndToEndProbe> finalProbes = probes;
+        final List<HealthAdvisorSecurityScanner.AttackProbe> finalProbes = probes;
         final int expectedProbeCount = probes.size();
 
         // Create report immediately so status updates work during scan
@@ -921,8 +919,7 @@ public class HealthAdvisorApp {
             probeDescriptions.add(Map.of(
                     "id", probe.id(),
                     "name", probe.name(),
-                    "category", probe.category(),
-                    "mapsTo", probe.mapsTo()
+                    "category", probe.category()
             ));
         }
         status.put("probeDescriptions", probeDescriptions);
