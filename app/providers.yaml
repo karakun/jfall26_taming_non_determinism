@@ -1,0 +1,33 @@
+# Provider configuration for the Health Advisor app.
+# Copy this file to app/providers.yaml to enable fallback support.
+#
+# The app tries providers in order: primary first, then fallbacks.
+#
+format: providers/1
+
+providers:
+  # Primary: Mistral model via LiteLLM gateway
+  primary:
+    name: mistral-litellm
+    endpoint: ENV
+    api-key: ENV
+    model: karakun-Mistral-Small-4-119B-2603
+
+  # Fallbacks: Tried in order when primary fails
+  fallback:
+    # Fallback 1: Llama 3.1 8B via LiteLLM gateway
+    - name: llama3.1-8b-litellm
+      endpoint: ENV
+      api-key: ENV
+      model: local-llama3.1-8b
+      enabled: true
+
+    # Fallback 2: Local Ollama running on the machine
+    - name: llama3.2-local
+      endpoint: http://localhost:11434/v1/chat/completions
+      api-key: optional
+      model: llama3.2:1b
+      enabled: true
+
+# When all providers fail, this message is returned
+fallback-message: "All LLM providers are currently unavailable. Please try again later."
