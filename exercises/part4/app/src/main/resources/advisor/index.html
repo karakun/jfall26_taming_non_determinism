@@ -1223,6 +1223,7 @@
               <div class="security-tabs">
                 <button type="button" class="security-tab active" data-tab="llm1">LLM1 Advisor</button>
                 <button type="button" class="security-tab" data-tab="llm2">LLM2 Guardrail</button>
+                <button type="button" class="security-tab" data-tab="e2e">LLM1+2 E2E</button>
               </div>
 
               <!-- LLM1 Advisor Tab -->
@@ -1312,6 +1313,50 @@
                       <p style="font-size: 0.72rem; color: var(--muted); margin: 0.2rem 0;">G6: Context Blindness · G7: Hedged Harm · G8: Language Shift</p>
                       <p class="security-category-label">C. Format & Parsing Attacks</p>
                       <p style="font-size: 0.72rem; color: var(--muted); margin: 0.2rem 0;">G9: Polarity Confusion</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- LLM1+2 End-to-End Tab -->
+              <div class="security-tab-content" id="security-tab-e2e">
+                <div class="security-tab-controls">
+                  <div class="select-dropdown">
+                    <select id="e2e-category" title="Attack category">
+                      <option value="ALL">All Probes (8)</option>
+                      <option value="DIRECT_CHAT">A. Direct Chat (5)</option>
+                      <option value="DOCUMENT_INJECTION">B. Document Injection (2)</option>
+                      <option value="MULTI_TURN">C. Multi-Turn (1)</option>
+                    </select>
+                  </div>
+                  <button type="button" class="security-btn" id="e2e-scan-btn" title="Run E2E scan">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                      <path d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
+                      <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    Run
+                  </button>
+                  <button type="button" class="security-btn stop" id="e2e-stop-btn" title="Stop scan" style="display: none;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                      <rect x="6" y="6" width="12" height="12"/>
+                    </svg>
+                    Stop
+                  </button>
+                </div>
+                <div class="security-panel-header">
+                  <h3 class="security-panel-title">End-to-End Scan Results</h3>
+                  <span class="security-asr-badge" id="e2e-asr-badge">--</span>
+                </div>
+                <div class="security-panel-body">
+                  <div class="security-progress" id="e2e-progress"></div>
+                  <div class="security-results-list" id="e2e-results-list">
+                    <div class="security-empty">
+                      <p class="security-category-label">A. Direct Chat Vector</p>
+                      <p style="font-size: 0.72rem; color: var(--muted); margin: 0.2rem 0;">E1: Fake Reviewer Note (G1) · E2: Authority Citation (G4) · E3: Polarity Tag (G9) · E4: Language Switch (G10) · E5: Context Stripped (G6)</p>
+                      <p class="security-category-label">B. Document Injection</p>
+                      <p style="font-size: 0.72rem; color: var(--muted); margin: 0.2rem 0;">E6: Fake Verdict via Note (G2) · E7: Authority + Tag Stacked (G4+G1)</p>
+                      <p class="security-category-label">C. Multi-Turn Delivery</p>
+                      <p style="font-size: 0.72rem; color: var(--muted); margin: 0.2rem 0;">E8: Crescendo into Payload (G1+Trust)</p>
                     </div>
                   </div>
                 </div>
@@ -2298,6 +2343,14 @@
   const guardrailResultsList = document.getElementById("guardrail-results-list");
   const guardrailTypeIndicator = document.getElementById("guardrail-type-indicator");
 
+  // E2E End-to-End scan elements
+  const e2eScanBtn = document.getElementById("e2e-scan-btn");
+  const e2eStopBtn = document.getElementById("e2e-stop-btn");
+  const e2eCategory = document.getElementById("e2e-category");
+  const e2eAsrBadge = document.getElementById("e2e-asr-badge");
+  const e2eProgress = document.getElementById("e2e-progress");
+  const e2eResultsList = document.getElementById("e2e-results-list");
+
   // Security tabs
   const securityTabs = document.querySelectorAll(".security-tab");
   const securityTabContents = document.querySelectorAll(".security-tab-content");
@@ -2306,6 +2359,8 @@
   let securityScanRunning = false;
   let guardrailScanPolling = null;
   let guardrailScanRunning = false;
+  let e2eScanPolling = null;
+  let e2eScanRunning = false;
 
   // Tab switching
   securityTabs.forEach(tab => {
@@ -2816,6 +2871,227 @@
   // Initial guardrail status check and type indicator update
   pollGuardrailStatus();
   updateGuardrailTypeIndicator();
+
+  // ══════════════════════════════════════════════════════════════════════════════
+  // Part 4: E2E End-to-End Scan Controls (LLM1 + LLM2)
+  // ══════════════════════════════════════════════════════════════════════════════
+
+  async function startE2EScan() {
+    try {
+      const category = e2eCategory.value;
+      const response = await fetch("/api/security/e2e/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ category })
+      });
+
+      if (response.ok) {
+        e2eScanRunning = true;
+        e2eScanBtn.style.display = "none";
+        e2eStopBtn.style.display = "flex";
+        e2eStopBtn.classList.add("running");
+        e2eProgress.textContent = "Starting E2E scan...";
+        e2eAsrBadge.textContent = "--";
+        e2eAsrBadge.className = "security-asr-badge running";
+
+        // Start polling
+        e2eScanPolling = setInterval(pollE2EStatus, 1000);
+      }
+    } catch (e) {
+      console.error("Failed to start E2E scan:", e);
+      e2eAsrBadge.textContent = "ERR";
+      e2eAsrBadge.className = "security-asr-badge bad";
+      e2eProgress.textContent = "Connection error";
+    }
+  }
+
+  async function stopE2EScan() {
+    try {
+      await fetch("/api/security/e2e/stop", { method: "POST" });
+      e2eScanRunning = false;
+      resetE2EButtons();
+      if (e2eScanPolling) {
+        clearInterval(e2eScanPolling);
+        e2eScanPolling = null;
+      }
+    } catch (e) {
+      console.error("Failed to stop E2E scan:", e);
+    }
+  }
+
+  async function pollE2EStatus() {
+    try {
+      const response = await fetch("/api/security/e2e/status");
+      const status = await response.json();
+
+      // Update running state
+      e2eScanRunning = status.running;
+
+      // Refresh WAL entries during each poll
+      fetchWalEntries();
+
+      if (!status.running && e2eScanPolling) {
+        clearInterval(e2eScanPolling);
+        e2eScanPolling = null;
+        resetE2EButtons();
+      }
+
+      // Update ASR badge
+      if (status.totalProbes > 0) {
+        const asr = status.attackSuccessRate || 0;
+        e2eAsrBadge.textContent = asr.toFixed(0) + "% ASR";
+        e2eAsrBadge.classList.remove("running", "good", "warning", "bad");
+        if (status.running) {
+          e2eAsrBadge.classList.add("running");
+        } else if (asr === 0) {
+          e2eAsrBadge.classList.add("good");
+        } else if (asr <= 20) {
+          e2eAsrBadge.classList.add("warning");
+        } else {
+          e2eAsrBadge.classList.add("bad");
+        }
+      }
+
+      // Update progress
+      const completed = status.completedProbes || 0;
+      const total = status.expectedProbes || status.totalProbes || 0;
+      if (status.running) {
+        e2eProgress.textContent = `Scanning probe ${completed}/${total}...`;
+      } else if (total > 0) {
+        e2eProgress.textContent = `Completed: ${completed}/${total} probes`;
+      }
+
+      // Render results grouped by category
+      renderE2EResults(status);
+
+    } catch (e) {
+      console.error("Error polling E2E status:", e);
+    }
+  }
+
+  function renderE2EResults(status) {
+    if (status.results && status.results.length > 0) {
+      try {
+        // Group results by category
+        const grouped = {
+          DIRECT_CHAT: [],
+          DOCUMENT_INJECTION: [],
+          MULTI_TURN: []
+        };
+
+        status.results.forEach(result => {
+          const cat = result.category || "DIRECT_CHAT";
+          if (grouped[cat]) {
+            grouped[cat].push(result);
+          }
+        });
+
+        let html = "";
+
+        // A. Direct Chat
+        if (grouped.DIRECT_CHAT.length > 0 || status.running) {
+          html += '<p class="security-category-label">A. Direct Chat Vector</p>';
+          grouped.DIRECT_CHAT.forEach((result, idx) => {
+            html += renderE2EResultItem(result, `dc-${idx}`);
+          });
+        }
+
+        // B. Document Injection
+        if (grouped.DOCUMENT_INJECTION.length > 0 || status.running) {
+          html += '<p class="security-category-label">B. Document Injection</p>';
+          grouped.DOCUMENT_INJECTION.forEach((result, idx) => {
+            html += renderE2EResultItem(result, `di-${idx}`);
+          });
+        }
+
+        // C. Multi-Turn
+        if (grouped.MULTI_TURN.length > 0 || status.running) {
+          html += '<p class="security-category-label">C. Multi-Turn Delivery</p>';
+          grouped.MULTI_TURN.forEach((result, idx) => {
+            html += renderE2EResultItem(result, `mt-${idx}`);
+          });
+        }
+
+        e2eResultsList.innerHTML = html;
+
+        // Add click handlers for expandable items
+        e2eResultsList.querySelectorAll(".security-result-item.expandable").forEach(item => {
+          item.addEventListener("click", () => {
+            item.classList.toggle("expanded");
+            const expandIcon = item.querySelector(".security-result-expand");
+            if (expandIcon) {
+              expandIcon.textContent = item.classList.contains("expanded") ? "-" : "+";
+            }
+          });
+        });
+
+      } catch (e) {
+        console.error("Error rendering E2E results:", e);
+      }
+    }
+  }
+
+  function renderE2EResultItem(result, id) {
+    const escapeHtmlAttr = (str) => (str || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+
+    const verdictClass = result.attackSucceeded ? "bypassed" : "blocked";
+    const verdictText = result.attackSucceeded ? "BYPASSED" : "BLOCKED";
+    const hasDetails = (result.judgeReason && result.judgeReason.length > 0) ||
+                      (result.allResponses && result.allResponses.length > 0);
+    const expandClass = hasDetails ? "expandable" : "";
+    const expandIcon = hasDetails ? '<span class="security-result-expand">+</span>' : "";
+
+    const escapedProbeName = escapeHtmlAttr(result.probeName);
+
+    let detailsSection = "";
+    if (hasDetails) {
+      let detailsContent = "";
+
+      if (result.judgeReason && result.judgeReason.length > 0) {
+        const escapedReason = escapeHtmlAttr(result.judgeReason);
+        detailsContent += `<div class="security-result-judge"><strong>Analysis:</strong><pre>${escapedReason}</pre></div>`;
+      }
+
+      if (result.allResponses && result.allResponses.length > 0) {
+        detailsContent += `<div class="security-result-responses"><strong>Pipeline Responses:</strong>`;
+        result.allResponses.forEach((resp, i) => {
+          const escapedResp = escapeHtmlAttr(resp);
+          detailsContent += `<pre class="security-response-sample">[${i + 1}] ${escapedResp}</pre>`;
+        });
+        detailsContent += `</div>`;
+      }
+
+      detailsSection = `<div class="security-result-details">${detailsContent}</div>`;
+    }
+
+    return `
+      <div class="security-result-item ${verdictClass} ${expandClass}" data-probe-id="${result.probeId}">
+        <div class="security-result-header">
+          <span class="security-result-name">${result.probeId}: ${escapedProbeName}</span>
+          <span class="security-result-verdict ${verdictClass}">${verdictText}</span>
+          ${expandIcon}
+        </div>
+        ${detailsSection}
+      </div>
+    `;
+  }
+
+  function resetE2EButtons() {
+    e2eScanBtn.style.display = "flex";
+    e2eStopBtn.style.display = "none";
+    e2eStopBtn.classList.remove("running");
+  }
+
+  e2eScanBtn.addEventListener("click", startE2EScan);
+  e2eStopBtn.addEventListener("click", stopE2EScan);
+
+  // Initial E2E status check
+  pollE2EStatus();
 
   // ══════════════════════════════════════════════════════════════════════════════
   // Part 4: Bias Scan Controls

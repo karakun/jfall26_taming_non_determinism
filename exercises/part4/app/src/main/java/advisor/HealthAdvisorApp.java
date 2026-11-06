@@ -16,6 +16,7 @@ import tiberius.HealthAdvisorSecurityScanner;
 import tiberius.HealthAdvisorGenerator;
 import tiberius.GatewayGenerator;
 import tiberius.GuardrailSecurityScanner;
+import tiberius.EndToEndSecurityScanner;
 import tiberius.HealthcareBuffs;
 import tiberius.SecurityScanReport;
 import tiberius.SecurityScanResult;
@@ -74,6 +75,11 @@ public class HealthAdvisorApp {
     private static GuardrailSecurityScanner guardrailScanner;
     private static SecurityScanReport currentGuardrailScanReport;
     private static final ExecutorService guardrailScanExecutor = Executors.newSingleThreadExecutor();
+
+    // Part 4: End-to-End Security Scanner (LLM1 + LLM2)
+    private static EndToEndSecurityScanner e2eScanner;
+    private static SecurityScanReport currentE2EScanReport;
+    private static final ExecutorService e2eScanExecutor = Executors.newSingleThreadExecutor();
 
     private static final int DEFAULT_PORT = 8080;
 
@@ -144,8 +150,10 @@ public class HealthAdvisorApp {
         llmModel = guardrail.model();  // Use same model for LLM-as-judge
         securityScanner = new HealthAdvisorSecurityScanner("http://localhost:" + port, wal, appDir, llmModel);
         guardrailScanner = new GuardrailSecurityScanner("http://localhost:" + port, wal, appDir, llmModel);
+        e2eScanner = new EndToEndSecurityScanner("http://localhost:" + port, wal, appDir, llmModel);
         System.out.println("Tiberius Security Scanner initialized with LLM-as-judge: " + llmModel);
         System.out.println("Guardrail Security Scanner initialized with LLM-as-judge: " + llmModel);
+        System.out.println("End-to-End Security Scanner initialized with LLM-as-judge: " + llmModel);
 
         HttpServer server = bind(port, share);
         server.setExecutor(Executors.newVirtualThreadPerTaskExecutor());
@@ -172,6 +180,11 @@ public class HealthAdvisorApp {
         server.createContext("/api/security/guardrail/start", HealthAdvisorApp::startGuardrailScan);
         server.createContext("/api/security/guardrail/stop", HealthAdvisorApp::stopGuardrailScan);
         server.createContext("/api/security/guardrail/status", HealthAdvisorApp::guardrailScanStatus);
+
+        // Part 4: End-to-End security scan endpoints (LLM1 + LLM2)
+        server.createContext("/api/security/e2e/start", HealthAdvisorApp::startE2EScan);
+        server.createContext("/api/security/e2e/stop", HealthAdvisorApp::stopE2EScan);
+        server.createContext("/api/security/e2e/status", HealthAdvisorApp::e2eScanStatus);
 
         // Part 4: Bias scan endpoints
         server.createContext("/api/bias/scan/start", HealthAdvisorApp::startBiasScan);
@@ -788,6 +801,128 @@ public class HealthAdvisorApp {
                     "id", probe.id(),
                     "name", probe.name(),
                     "category", probe.category()
+            ));
+        }
+        status.put("probeDescriptions", probeDescriptions);
+
+        send(exchange, 200, "application/json", JSON.writeValueAsString(status));
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════════
+    // Part 4: End-to-End Security Scan Handlers (LLM1 + LLM2 Pipeline)
+    // ══════════════════════════════════════════════════════════════════════════════
+
+    /** Part 4: Start an end-to-end security scan (tests full LLM1 -> LLM2 pipeline) */
+    private static void startE2EScan(HttpExchange exchange) throws IOException {
+        if (!exchange.getRequestMethod().equals("POST")) {
+            send(exchange, 405, "application/json", JSON.writeValueAsString(Map.of("error", "Use POST.")));
+            return;
+        }
+
+        // Check if a scan is already running
+        if (e2eScanner.isRunning()) {
+            send(exchange, 400, "application/json", JSON.writeValueAsString(Map.of(
+                    "error", "An E2E scan is already running",
+                    "status", "running"
+            )));
+            return;
+        }
+
+        // Parse scan configuration from request body
+        String category = "ALL";
+        try {
+            JsonNode body = JSON.readTree(exchange.getRequestBody());
+            if (body.has("category")) {
+                category = body.get("category").asText();
+            }
+        } catch (Exception ignored) {
+            // Use defaults
+        }
+
+        // Determine which probes to run
+        List<EndToEndSecurityScanner.EndToEndProbe> probes = new ArrayList<>();
+        switch (category.toUpperCase()) {
+            case "DIRECT_CHAT" -> probes.addAll(EndToEndSecurityScanner.DIRECT_CHAT_PROBES);
+            case "DOCUMENT_INJECTION" -> probes.addAll(EndToEndSecurityScanner.DOCUMENT_INJECTION_PROBES);
+            case "MULTI_TURN" -> probes.addAll(EndToEndSecurityScanner.MULTI_TURN_PROBES);
+            default -> probes.addAll(EndToEndSecurityScanner.ALL_PROBES);
+        }
+
+        final List<EndToEndSecurityScanner.EndToEndProbe> finalProbes = probes;
+        final int expectedProbeCount = probes.size();
+
+        // Create report immediately so status updates work during scan
+        currentE2EScanReport = new SecurityScanReport();
+        currentE2EScanReport.setExpectedProbes(expectedProbeCount);
+
+        // Start scan in background
+        e2eScanExecutor.submit(() -> {
+            e2eScanner.scan(finalProbes, currentE2EScanReport, result -> {
+                System.out.println("E2E Scan: " + result.probeName() + " -> " + result.guardrailVerdict());
+            });
+        });
+
+        send(exchange, 200, "application/json", JSON.writeValueAsString(Map.of(
+                "status", "started",
+                "category", category,
+                "probeCount", expectedProbeCount
+        )));
+    }
+
+    /** Part 4: Stop the current E2E scan */
+    private static void stopE2EScan(HttpExchange exchange) throws IOException {
+        if (!exchange.getRequestMethod().equals("POST")) {
+            send(exchange, 405, "application/json", JSON.writeValueAsString(Map.of("error", "Use POST.")));
+            return;
+        }
+
+        if (!e2eScanner.isRunning()) {
+            send(exchange, 400, "application/json", JSON.writeValueAsString(Map.of(
+                    "error", "No E2E scan is running",
+                    "status", "idle"
+            )));
+            return;
+        }
+
+        e2eScanner.cancel();
+
+        send(exchange, 200, "application/json", JSON.writeValueAsString(Map.of(
+                "status", "cancelled"
+        )));
+    }
+
+    /** Part 4: Get E2E scan status */
+    private static void e2eScanStatus(HttpExchange exchange) throws IOException {
+        if (!exchange.getRequestMethod().equals("GET")) {
+            send(exchange, 405, "application/json", JSON.writeValueAsString(Map.of("error", "Use GET.")));
+            return;
+        }
+
+        Map<String, Object> status = new HashMap<>();
+        status.put("running", e2eScanner.isRunning());
+
+        if (currentE2EScanReport != null) {
+            status.putAll(currentE2EScanReport.toSummary());
+            status.put("results", currentE2EScanReport.getResults());
+        } else {
+            status.put("totalProbes", 0);
+            status.put("successfulAttacks", 0);
+            status.put("blockedAttacks", 0);
+            status.put("attackSuccessRate", 0.0);
+            status.put("results", List.of());
+        }
+
+        // Add available categories
+        status.put("availableCategories", List.of("ALL", "DIRECT_CHAT", "DOCUMENT_INJECTION", "MULTI_TURN"));
+
+        // Add probe descriptions for UI
+        List<Map<String, String>> probeDescriptions = new ArrayList<>();
+        for (var probe : EndToEndSecurityScanner.ALL_PROBES) {
+            probeDescriptions.add(Map.of(
+                    "id", probe.id(),
+                    "name", probe.name(),
+                    "category", probe.category(),
+                    "mapsTo", probe.mapsTo()
             ));
         }
         status.put("probeDescriptions", probeDescriptions);
