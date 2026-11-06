@@ -1,6 +1,6 @@
 package advisor;
 
-import advisor.Gateway.GatewayResult;
+import advisor.LlmGateway.GatewayResult;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -23,11 +23,11 @@ public class Advisor {
 
     private static final ObjectMapper JSON = new ObjectMapper();
 
-    private final Gateway gateway;
+    private final LlmGateway gateway;
     private final GuardrailConfig guardrail;
     private final AdvisorConfig advisor;
 
-    public Advisor(Gateway gateway, GuardrailConfig guardrail, AdvisorConfig advisor) {
+    public Advisor(LlmGateway gateway, GuardrailConfig guardrail, AdvisorConfig advisor) {
         this.gateway = gateway;
         this.guardrail = guardrail;
         this.advisor = advisor;
@@ -44,10 +44,19 @@ public class Advisor {
 
     /** LLM 2: one guardrail call, exactly as the exercises make it, and what the patient sees as a result. */
     public CheckResult check(String advice) {
+        // Check if guardrail failure is injected - fallback to naive guardrail (workshop demo)
+        if (gateway.isGuardrailFailureInjected()) {
+            NaiveGuardrail.Result naiveResult = NaiveGuardrail.check(advice);
+            Verdict.State state = naiveResult.harmful() ? Verdict.State.REJECTED : Verdict.State.ACCEPTED;
+            Verdict verdict = new Verdict(state, naiveResult.reason(), naiveResult.latencyMs());
+            return new CheckResult(advice, null, verdict, patientView(advice, verdict),
+                    GuardrailType.NAIVE, naiveResult);
+        }
         GatewayResult result = gateway.complete(guardrail.model(), guardrail.systemPrompt(), advice,
                 guardrail.temperature(), guardrail.maxTokens(), guardrail.responseSchema());
         Verdict verdict = verdictFrom(result);
-        return new CheckResult(advice, result.content(), verdict, patientView(advice, verdict));
+        return new CheckResult(advice, result.content(), verdict, patientView(advice, verdict),
+                GuardrailType.LLM, null);
     }
 
     /** Only accepted advice reaches the patient; an infrastructure failure is reported as one. */
@@ -94,14 +103,19 @@ public class Advisor {
     public record AdviceResult(String question, String advice, long latencyMs, String error, String patientView) {
     }
 
+    /** Which guardrail was used to check the advice. */
+    public enum GuardrailType { LLM, NAIVE }
+
     /** {@code answer} is LLM 2's answer as it came (JSON when all went well), or null if the call failed. */
-    public record CheckResult(String advice, String answer, Verdict verdict, String patientView) {
+    public record CheckResult(String advice, String answer, Verdict verdict, String patientView,
+                              GuardrailType guardrailType, NaiveGuardrail.Result naiveResult) {
     }
 
     /** The advice model: the guardrail's model with the app's own short prompt. */
-    public record AdvisorConfig(String systemPrompt, String model, double temperature, int maxTokens) {
+    public record AdvisorConfig(String systemPrompt, String fallbackSystemPrompt, String model, double temperature, int maxTokens) {
 
         static final String PROMPT_FILE = "advisor-system-prompt.txt";
+        static final String FALLBACK_PROMPT_FILE = "advisor-fallback-system-prompt.txt";
 
         public static AdvisorConfig load(Path appDir, String model) {
             Path file = appDir.resolve(PROMPT_FILE);
@@ -110,7 +124,17 @@ public class Advisor {
                         + ". Start the app from the app/ folder of the workshop repository.");
             }
             try {
-                return new AdvisorConfig(Files.readString(file), model, 0.7, 200);
+                String systemPrompt = Files.readString(file);
+                String fallbackSystemPrompt = systemPrompt; // Default to same prompt
+
+                // Load fallback prompt if it exists
+                Path fallbackFile = appDir.resolve(FALLBACK_PROMPT_FILE);
+                if (Files.isRegularFile(fallbackFile)) {
+                    fallbackSystemPrompt = Files.readString(fallbackFile);
+                    System.out.println("Loaded fallback system prompt from " + FALLBACK_PROMPT_FILE);
+                }
+
+                return new AdvisorConfig(systemPrompt, fallbackSystemPrompt, model, 0.7, 200);
             } catch (IOException e) {
                 throw new StartupException("Can't read " + PROMPT_FILE + ": " + e.getMessage());
             }

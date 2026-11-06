@@ -17,7 +17,7 @@ import java.util.Map;
  * One chat-completions call to Karakun's LLM gateway. Whatever goes wrong comes back as a result,
  * never as an exception, so the page can show it.
  */
-public class Gateway {
+public class Gateway implements LlmGateway {
 
     private static final ObjectMapper JSON = new ObjectMapper();
     private static final int SHORT_BODY = 200;
@@ -37,8 +37,9 @@ public class Gateway {
     }
 
     /** {@code responseSchema} may be null: the answer is then free text. */
-    public GatewayResult complete(String model, String systemPrompt, String userMessage,
-                                  double temperature, int maxTokens, Map<String, Object> responseSchema) {
+    @Override
+    public LlmGateway.GatewayResult complete(String model, String systemPrompt, String userMessage,
+                                              double temperature, int maxTokens, Map<String, Object> responseSchema) {
         long start = System.nanoTime();
         try {
             HttpRequest request = HttpRequest.newBuilder(settings.endpoint())
@@ -51,24 +52,24 @@ public class Gateway {
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
             long latencyMs = millisSince(start);
             if (response.statusCode() != 200) {
-                return GatewayResult.failed("The gateway answered " + response.statusCode() + ": "
+                return LlmGateway.GatewayResult.failed("The gateway answered " + response.statusCode() + ": "
                         + shorten(response.body()), latencyMs);
             }
             JsonNode content = JSON.readTree(response.body()).path("choices").path(0).path("message").path("content");
             if (!content.isTextual()) {
-                return GatewayResult.failed("The gateway's answer has no message content: "
+                return LlmGateway.GatewayResult.failed("The gateway's answer has no message content: "
                         + shorten(response.body()), latencyMs);
             }
-            return GatewayResult.answered(content.asText(), latencyMs);
+            return LlmGateway.GatewayResult.answered(content.asText(), latencyMs);
         } catch (HttpTimeoutException e) {
-            return GatewayResult.failed("The gateway didn't answer within " + requestTimeout.toSeconds() + " s.",
+            return LlmGateway.GatewayResult.failed("The gateway didn't answer within " + requestTimeout.toSeconds() + " s.",
                     millisSince(start));
         } catch (IOException e) {
             String cause = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
-            return GatewayResult.failed("Can't reach the gateway (" + cause + ").", millisSince(start));
+            return LlmGateway.GatewayResult.failed("Can't reach the gateway (" + cause + ").", millisSince(start));
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            return GatewayResult.failed("The call was interrupted.", millisSince(start));
+            return LlmGateway.GatewayResult.failed("The call was interrupted.", millisSince(start));
         }
     }
 
@@ -98,21 +99,5 @@ public class Gateway {
     private static String shorten(String text) {
         String oneLine = text == null ? "" : text.replaceAll("\\s+", " ").strip();
         return oneLine.length() <= SHORT_BODY ? oneLine : oneLine.substring(0, SHORT_BODY) + "…";
-    }
-
-    /** Exactly one of {@code content} and {@code error} is set. */
-    public record GatewayResult(String content, long latencyMs, String error) {
-
-        static GatewayResult answered(String content, long latencyMs) {
-            return new GatewayResult(content, latencyMs, null);
-        }
-
-        static GatewayResult failed(String error, long latencyMs) {
-            return new GatewayResult(null, latencyMs, error);
-        }
-
-        public boolean failed() {
-            return error != null;
-        }
     }
 }

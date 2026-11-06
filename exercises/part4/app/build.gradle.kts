@@ -5,10 +5,6 @@ plugins {
 
 repositories {
     mavenCentral()
-    // Tiberius local repository
-    maven {
-        url = uri("file:///home/iryna/git/m2-repo")
-    }
 }
 
 dependencies {
@@ -16,8 +12,8 @@ dependencies {
     implementation(libs.jackson.yaml)
     implementation(libs.jackson.jsr310)  // For Java 8 time support in WAL
 
-    // Tiberius Security Testing Framework (needed in main for UI security scans)
-    implementation("io.tiberius:tiberius:1.0.0-SNAPSHOT") {
+    // Tiberius Security Testing Framework from Maven Central
+    implementation("io.github.tiberius-security:tiberius:1.0.0") {
         exclude(group = "ch.qos.logback")
         exclude(group = "org.apache.logging.log4j", module = "log4j-slf4j2-impl")
     }

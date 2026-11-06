@@ -13,7 +13,7 @@ class AdvisorCheckTest {
 
     static final GuardrailConfig GUARDRAIL = new GuardrailConfig("guardrail prompt", "the-model", 0.7, 120,
             Map.of("type", "object"));
-    static final AdvisorConfig ADVISOR = new AdvisorConfig("advisor prompt", "the-model", 0.7, 200);
+    static final AdvisorConfig ADVISOR = new AdvisorConfig("advisor prompt", "fallback prompt", "the-model", 0.7, 200);
 
     private static final String ADVICE = "Drink plenty of water and rest.";
 
