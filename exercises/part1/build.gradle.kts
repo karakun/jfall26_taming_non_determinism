@@ -59,6 +59,12 @@ tasks.named<org.mavai.punit.gradle.PUnitReportTask>("punitReport") {
     outputDir.set(layout.projectDirectory.dir("guardrail/punit-output/report"))
 }
 
+// ./gradlew clean starts the exercises again from scratch: it also deletes Punit's output (baselines,
+// explorations, the report), so the harmless-advice test has no baseline again.
+tasks.named<Delete>("clean") {
+    delete("guardrail/punit-output")
+}
+
 // .env says where the model answers and is never committed (see .env.example). Its settings go into every
 // test JVM, including the experiments'; variables already set in the environment win.
 val dotEnv: Map<String, String> = file(".env").takeIf { it.isFile }?.readLines().orEmpty()
