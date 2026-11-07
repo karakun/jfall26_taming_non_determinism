@@ -1,5 +1,7 @@
 # jfall2026_taming_non_determinism
 
+**Attending the workshop?** Set up your laptop before you come: see [SETUP.md](SETUP.md).
+
 
 
 ## Getting started
