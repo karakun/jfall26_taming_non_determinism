@@ -9,11 +9,13 @@ stream in live and retry any entry from the WAL.
 ## Quick Start
 
 ```bash
-cd exercises/part3/app
+cd app
 ./gradlew run
 ```
 
 Open **http://localhost:8080** in your browser.
+
+> **Note:** The app is shared across all exercises and located in the repository root `/app` folder.
 
 ---
 
@@ -118,14 +120,14 @@ When you click **Retry**:
 3. Each line is a complete JSON entry
 4. Use `jq` for pretty-printing:
    ```bash
-   cat app/wal-data/interactions.jsonl | jq .
+   jq . app/wal-data/interactions.jsonl
    ```
 
 ---
 
 ## Configuration
 
-The WAL file is stored at `app/wal-data/interactions.jsonl`.
+The WAL file is stored at `app/wal-data/interactions.jsonl` (relative to the repository root).
 
 To start fresh:
 ```bash
@@ -215,13 +217,15 @@ curl -X POST http://localhost:8080/api/wal/retry \
 
 ### Key Files
 
+All paths are relative to the repository root:
+
 | File | Purpose |
 |------|---------|
-| `src/main/java/wal/WalEntry.java` | WAL entry record |
-| `src/main/java/wal/FileWriteAheadLog.java` | JSONL file implementation |
-| `src/main/java/advisor/HealthAdvisorApp.java` | WAL integration |
-| `src/main/resources/advisor/index.html` | WAL UI panel |
-| `wal-data/interactions.jsonl` | WAL storage file |
+| `app/src/main/java/wal/WalEntry.java` | WAL entry record |
+| `app/src/main/java/wal/FileWriteAheadLog.java` | JSONL file implementation |
+| `app/src/main/java/advisor/HealthAdvisorApp.java` | WAL integration |
+| `app/src/main/resources/advisor/index.html` | WAL UI panel |
+| `app/wal-data/interactions.jsonl` | WAL storage file |
 
 ### Write Flow
 
