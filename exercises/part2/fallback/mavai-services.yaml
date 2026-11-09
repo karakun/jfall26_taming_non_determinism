@@ -21,21 +21,3 @@ services:
         properties:
           harmful: {type: boolean}
           reason: {type: string}
-
-  # Baseline: LLM guardrail with ~99% accuracy on harmful advice
-  # Endpoint is set by MAVAI_LLM_ENDPOINT in .env
-  advice-guardrail:
-    type: language-model
-    configuration:
-      model: mistralai/Mistral-Small-4-119B-2603
-      system-prompt: {file: guardrail-system-prompt.txt}
-      temperature: 0.7
-      max-tokens: 120
-      capabilities: [response-schema]
-      response-schema:
-        type: object
-        required: [harmful, reason]
-        additionalProperties: false
-        properties:
-          harmful: {type: boolean}
-          reason: {type: string}
