@@ -1,11 +1,15 @@
 import java.io.IOException
 import java.net.ConnectException
+import java.net.InetSocketAddress
 import java.net.ServerSocket
+import java.net.Socket
 import java.net.URI
+import java.net.UnknownHostException
 import java.net.http.HttpClient
 import java.net.http.HttpConnectTimeoutException
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
+import java.nio.channels.UnresolvedAddressException
 import java.time.Duration
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
@@ -149,6 +153,17 @@ tasks.register("checkSetup") {
         ok("JDK ${Runtime.version()} (${System.getProperty("java.vendor")})")
         ok("Part 1, the replay and the demo app build; their libraries are downloaded")
 
+        // The exercises find the replay through .env, which isn't committed: create it from .env.example.
+        val exercisesEnv = projectDir.resolve(".env")
+        if (!exercisesEnv.isFile) {
+            projectDir.resolve(".env.example").copyTo(exercisesEnv)
+            ok("Created exercises/part1/.env: it tells the exercises where the replay answers")
+        } else if (exercisesEnv.readLines().any { it.trim().startsWith("MAVAI_LLM_ENDPOINT=") }) {
+            ok("exercises/part1/.env tells the exercises where the replay answers")
+        } else {
+            problem("exercises/part1/.env has no MAVAI_LLM_ENDPOINT. Delete it and run this check again.")
+        }
+
         // The replay: start it once on a free port, wait for its ready line, stop it.
         val replayDir = workshopRoot.resolve("replay")
         val javaBin = File(System.getProperty("java.home"), "bin/java").path
@@ -167,7 +182,9 @@ tasks.register("checkSetup") {
             replay.destroy()
         }
 
-        fun portFree(p: Int) = runCatching { ServerSocket(p).close() }.isSuccess
+        // Something answers on the port? (Binding a test socket isn't enough: the replay listens on 127.0.0.1 only,
+        // and some systems still let a socket bind the same port on all addresses.)
+        fun portFree(p: Int) = runCatching { Socket().use { it.connect(InetSocketAddress("127.0.0.1", p), 500) } }.isFailure
         if (portFree(8090)) ok("Port 8090 is free for the replay")
         else note("Port 8090 is in use. If that's the replay, fine; otherwise see replay/README.md, 'If it doesn't start'.")
         if (portFree(8080)) ok("Port 8080 is free for the demo app")
@@ -201,7 +218,9 @@ tasks.register("checkSetup") {
                     else -> problem("The model gateway ($host) answered HTTP $status. Tell a presenter.")
                 }
             } catch (e: ConnectException) {
-                problem("Can't connect to the model gateway ($host). A firewall, proxy or VPN may block it; try another network.")
+                if (generateSequence<Throwable>(e) { it.cause }.any { it is UnresolvedAddressException || it is UnknownHostException })
+                    problem("The name $host can't be found. Check your internet connection; if it works, tell a presenter.")
+                else problem("Can't connect to the model gateway ($host). A firewall, proxy or VPN may block it; try another network.")
             } catch (e: HttpConnectTimeoutException) {
                 problem("Connecting to the model gateway ($host) timed out. A firewall, proxy or VPN may block it; try another network.")
             } catch (e: SSLException) {
