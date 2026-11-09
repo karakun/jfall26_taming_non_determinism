@@ -32,3 +32,11 @@ tasks.named<JavaExec>("run") {
 tasks.test {
     useJUnitPlatform()
 }
+
+// The workshop's setup check lives in exercises/part1 (see SETUP.md); running it from here does the same.
+tasks.register<GradleBuild>("checkSetup") {
+    group = "verification"
+    description = "Checks that this laptop is ready for the workshop (runs exercises/part1's checkSetup)."
+    dir = file("../exercises/part1")
+    tasks = listOf("checkSetup")
+}
