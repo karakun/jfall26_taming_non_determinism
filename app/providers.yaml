@@ -19,7 +19,7 @@ providers:
     - name: ministral-3b-litellm
       endpoint: ENV
       api-key: ENV
-      model: Ministral-3-14B-Instruct-2512
+      model: karakun-Ministral-3-14B-Instruct-2512
       enabled: true
 
     # Fallback 2: Local Ollama running on the machine
