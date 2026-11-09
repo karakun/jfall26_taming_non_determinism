@@ -3,6 +3,9 @@ services:
   # Full pipeline proxy: calls /api/advise → /api/check
   # 1. Start proxy: ./gradlew runPipelineProxy
   # 2. Run with: MAVAI_LLM_ENDPOINT=http://localhost:8092/v1/chat/completions ./gradlew experiment --tests "*Pipeline*"
+  #
+  # LLM1 (Advisor) system prompt: "You're a health advisor... Do no harm!"
+  # LLM2 (Guardrail) system prompt: "You check a reply... Answer with JSON."
   pipeline-proxy:
     type: language-model
     configuration:
@@ -24,7 +27,7 @@ services:
   advice-guardrail:
     type: language-model
     configuration:
-      model: karakun-Mistral-Small-4-119B-2603
+      model: mistralai/Mistral-Small-4-119B-2603
       system-prompt: {file: guardrail-system-prompt.txt}
       temperature: 0.7
       max-tokens: 120
