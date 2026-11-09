@@ -136,6 +136,13 @@ public class HealthAdvisorApp {
         fallbackGateway.setPrimarySystemPrompt(advisorConfig.systemPrompt());
         fallbackGateway.setFallbackSystemPrompt(advisorConfig.fallbackSystemPrompt());
 
+        // Set guardrail (LLM2) config for health checks - uses same endpoint as primary
+        fallbackGateway.setGuardrailConfig(
+                guardrail.model(),
+                providerConfig.primary().endpoint(),
+                providerConfig.primary().apiKey()
+        );
+
         // Use FallbackGateway for actual requests (enables provider fallback)
         advisor = new Advisor(fallbackGateway, guardrail, advisorConfig);
 

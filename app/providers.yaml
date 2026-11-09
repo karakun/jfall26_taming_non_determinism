@@ -7,7 +7,7 @@ providers:
     name: mistral-litellm
     endpoint: ENV
     api-key: ENV
-    model: karakun-Mistral-Small-4-119B-2603
+    model: mistralai/Mistral-Small-4-119B-2603
 
   # Fallbacks: Tried in order when primary fails
   fallback:
@@ -15,7 +15,7 @@ providers:
     - name: ministral-3b-litellm
       endpoint: ENV
       api-key: ENV
-      model: karakun-Ministral-3-14B-Instruct-2512
+      model: mistralai/Ministral-3-14B-Instruct-2512
       enabled: true
 
     # Fallback 2: Local Ollama running on the machine

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Health Advisor (Tiberius Security)</title>
+<title>Health Advisor</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%230f766e'/%3E%3Cpath d='M26 14h12v12h12v12H38v12H26V38H14V26h12z' fill='%23fff'/%3E%3C/svg%3E">
 <style>
   :root {
@@ -1540,7 +1540,7 @@
             <h3 class="failure-section-title"><span class="chip">LLM 2</span> Guardrail Model</h3>
             <div class="failure-item">
               <div class="failure-item-info">
-                <span class="failure-item-label" id="guardrail-label">Guardrail</span>
+                <span class="failure-item-label" id="guardrail-label"><span class="health-dot" id="guardrail-health-dot" title="Health status"></span> Guardrail</span>
                 <span class="failure-item-model" id="guardrail-model-name">{{guardrail-model}}</span>
               </div>
               <input type="checkbox" class="failure-toggle" id="guardrail-toggle" title="Toggle guardrail failure">
@@ -1862,6 +1862,26 @@
     guardrailToggle.checked = status.guardrailFailed || false;
     guardrailLabel.classList.toggle("failed", status.guardrailFailed || false);
     document.body.classList.toggle("naive-active", status.guardrailFailed || false);
+
+    // Update guardrail model name and health indicator
+    const guardrailModelName = document.getElementById("guardrail-model-name");
+    if (guardrailModelName && status.guardrailModel) {
+      guardrailModelName.textContent = status.guardrailModel;
+    }
+    const guardrailHealthDot = document.getElementById("guardrail-health-dot");
+    if (guardrailHealthDot) {
+      guardrailHealthDot.classList.remove("healthy", "unhealthy", "unknown");
+      if (status.guardrailHealthy === true) {
+        guardrailHealthDot.classList.add("healthy");
+        guardrailHealthDot.title = "Guardrail is healthy";
+      } else if (status.guardrailHealthy === false) {
+        guardrailHealthDot.classList.add("unhealthy");
+        guardrailHealthDot.title = "Guardrail unhealthy: " + (status.guardrailHealthError || "unknown error");
+      } else {
+        guardrailHealthDot.classList.add("unknown");
+        guardrailHealthDot.title = "Guardrail health unknown";
+      }
+    }
 
     // Update system prompt display immediately based on failure injection state
     // willUseFallback is true when primary is failed and we'll use a fallback provider

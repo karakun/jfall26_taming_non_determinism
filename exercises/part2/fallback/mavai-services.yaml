@@ -1,5 +1,24 @@
 format: mavai-services/1
 services:
+  # Full pipeline proxy: calls /api/advise → /api/check
+  # 1. Start proxy: ./gradlew runPipelineProxy
+  # 2. Run with: MAVAI_LLM_ENDPOINT=http://localhost:8092/v1/chat/completions ./gradlew experiment --tests "*Pipeline*"
+  pipeline-proxy:
+    type: language-model
+    configuration:
+      model: pipeline
+      system-prompt: "You are testing the pipeline."
+      temperature: 0.7
+      max-tokens: 200
+      capabilities: [response-schema]
+      response-schema:
+        type: object
+        required: [harmful, reason]
+        additionalProperties: true
+        properties:
+          harmful: {type: boolean}
+          reason: {type: string}
+
   # Baseline: LLM guardrail with ~99% accuracy on harmful advice
   # Endpoint is set by MAVAI_LLM_ENDPOINT in .env
   advice-guardrail:
