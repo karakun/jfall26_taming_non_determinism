@@ -1,0 +1,945 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Failure Injection Simulator</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%230f766e'/%3E%3Cpath d='M26 14h12v12h12v12H38v12H26V38H14V26h12z' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+  :root {
+    --teal: #0f766e;
+    --teal-dark: #115e59;
+    --teal-soft: #e6f4f2;
+    --ink: #1f2933;
+    --muted: #52606d;
+    --line: #d5e3e1;
+    --page: #f5faf9;
+    --card: #ffffff;
+    --green: #166534;
+    --green-soft: #dcfce7;
+    --red: #b91c1c;
+    --red-soft: #fee2e2;
+    --orange: #c2410c;
+    --orange-soft: #ffedd5;
+    --amber: #92400e;
+    --amber-soft: #fef3c7;
+  }
+  * { box-sizing: border-box; }
+  html { font-size: 16px; height: 100%; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    color: var(--ink);
+    background: var(--page);
+    line-height: 1.45;
+    min-height: 100%;
+  }
+  header {
+    background: var(--teal);
+    color: #fff;
+    padding: 0.8rem 1.5rem;
+  }
+  .bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+  .brand { display: flex; align-items: center; gap: 0.75rem; }
+  .brand svg { width: 2.2rem; height: 2.2rem; }
+  .brand h1 { margin: 0; font-size: 1.4rem; font-weight: 650; }
+  .brand p { margin: 0; font-size: 0.8rem; opacity: 0.9; }
+
+  main {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 1.5rem;
+  }
+
+  /* Controls Panel */
+  .controls {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 0.6rem;
+    padding: 1rem 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  .controls h2 {
+    margin: 0 0 1rem;
+    font-size: 1rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .control-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+  }
+  .control-item label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 0.4rem;
+  }
+  .control-item input[type="range"] {
+    width: 100%;
+    margin-bottom: 0.3rem;
+  }
+  .control-item .value {
+    font-family: ui-monospace, monospace;
+    font-size: 0.9rem;
+    color: var(--teal);
+    font-weight: 600;
+  }
+  .control-buttons {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--line);
+  }
+  .btn {
+    font: inherit;
+    font-size: 0.9rem;
+    font-weight: 600;
+    padding: 0.5rem 1.2rem;
+    border-radius: 0.4rem;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .btn-primary {
+    background: var(--teal);
+    color: #fff;
+  }
+  .btn-primary:hover { background: var(--teal-dark); }
+  .btn-secondary {
+    background: var(--card);
+    color: var(--ink);
+    border: 1px solid var(--line);
+  }
+  .btn-secondary:hover { background: var(--page); }
+  .btn-danger {
+    background: var(--red);
+    color: #fff;
+  }
+  .btn-sm {
+    font-size: 0.8rem;
+    padding: 0.3rem 0.7rem;
+  }
+  .sim-controls {
+    display: flex;
+    gap: 0.4rem;
+  }
+
+  /* Simulation Grid */
+  .simulation-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  @media (max-width: 900px) {
+    .simulation-grid { grid-template-columns: 1fr; }
+  }
+
+  .sim-panel {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 0.6rem;
+    overflow: hidden;
+  }
+  .sim-header {
+    padding: 0.8rem 1rem;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .sim-header h3 {
+    margin: 0;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .sim-header .chip {
+    font-size: 0.7rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    font-weight: 600;
+  }
+  .chip-bernoulli { background: var(--teal-soft); color: var(--teal); }
+  .chip-arta { background: var(--orange-soft); color: var(--orange); }
+
+  .sim-body { padding: 1rem; }
+
+  /* Pipeline visualization */
+  .pipeline {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+    margin-bottom: 1rem;
+    font-size: 0.8rem;
+  }
+  .pipeline-stage {
+    padding: 0.4rem 0.6rem;
+    border-radius: 0.3rem;
+    background: var(--page);
+    border: 1px solid var(--line);
+    text-align: center;
+    min-width: 70px;
+  }
+  .pipeline-stage.active { border-color: var(--teal); background: var(--teal-soft); }
+  .pipeline-stage.llm { border-color: var(--green); background: var(--green-soft); }
+  .pipeline-stage.naive { border-color: var(--orange); background: var(--orange-soft); }
+  .pipeline-stage.escaped { border-color: var(--red); background: var(--red-soft); }
+  .pipeline-arrow { color: var(--muted); }
+
+  /* Timeline */
+  .timeline-label {
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-bottom: 0.3rem;
+  }
+  .timeline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+    margin-bottom: 0.8rem;
+    min-height: 24px;
+  }
+  .timeline-cell {
+    width: 18px;
+    height: 18px;
+    border-radius: 2px;
+    font-size: 0.6rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-weight: 700;
+  }
+  .cell-llm { background: var(--teal); }
+  .cell-naive { background: var(--orange); }
+  .cell-escaped { background: var(--red); }
+  .cell-blocked { background: var(--teal); }
+  .cell-safe { background: #94a3b8; }
+  .cell-fail { background: var(--red); }
+  .cell-ok { background: #94a3b8; }
+
+  /* Stats */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.8rem;
+    font-size: 0.85rem;
+  }
+  .stat-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.3rem 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .stat-label { color: var(--muted); }
+  .stat-value { font-weight: 600; font-family: ui-monospace, monospace; }
+  .stat-value.danger { color: var(--red); }
+  .stat-value.warning { color: var(--orange); }
+  .stat-value.good { color: var(--teal); }
+
+  /* Legend */
+  .legend {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    padding: 1rem;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 0.6rem;
+    font-size: 0.8rem;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .legend-color {
+    width: 16px;
+    height: 16px;
+    border-radius: 2px;
+  }
+
+  /* Metrics Explanation */
+  .metrics-help {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 0.6rem;
+    padding: 1rem;
+    margin-top: 1rem;
+  }
+  .metrics-help h4 {
+    margin: 0 0 0.8rem;
+    font-size: 0.85rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+  }
+  .metric-explain strong {
+    display: block;
+    font-size: 0.9rem;
+    color: var(--ink);
+    margin-bottom: 0.2rem;
+  }
+  .metric-explain p {
+    margin: 0;
+    font-size: 0.8rem;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+  .metric-explain code {
+    background: var(--page);
+    padding: 0.1rem 0.3rem;
+    border-radius: 3px;
+    font-size: 0.75rem;
+  }
+
+  /* Insights */
+  .insights {
+    background: var(--amber-soft);
+    border: 1px solid #fcd34d;
+    border-radius: 0.6rem;
+    padding: 1rem;
+    margin-top: 1.5rem;
+  }
+  .insights h3 {
+    margin: 0 0 0.5rem;
+    font-size: 0.9rem;
+    color: var(--amber);
+  }
+  .insights ul {
+    margin: 0;
+    padding-left: 1.2rem;
+    font-size: 0.85rem;
+    color: var(--ink);
+  }
+  .insights li { margin-bottom: 0.3rem; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="bar">
+    <div class="brand">
+      <svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="#fff" fill-opacity=".2"/><path d="M26 14h12v12h12v12H38v12H26V38H14V26h12z" fill="#fff"/></svg>
+      <div>
+        <h1>Failure Injection Simulator</h1>
+        <p>Visualize Bernoulli vs ARTA failure patterns</p>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <!-- Controls -->
+  <section class="controls">
+    <h2>Simulation Parameters</h2>
+    <div class="control-grid">
+      <div class="control-item">
+        <label>Failure Probability</label>
+        <input type="range" id="failureProb" min="0" max="100" value="75">
+        <span class="value" id="failureProbValue">75%</span>
+        <div style="font-size:0.75rem;color:var(--muted)">Probability that LLM-as-a-Judge is unavailable (network error, timeout, rate limit) and system falls back to naive guardrail</div>
+      </div>
+      <div class="control-item">
+        <label>ARTA Autocorrelation</label>
+        <input type="range" id="artaRho" min="0" max="100" value="70">
+        <span class="value" id="artaRhoValue">0.70</span>
+        <div style="font-size:0.75rem;color:var(--muted)">Controls clustering of failures. 0 = independent (like Bernoulli), 1 = failures stick together in long bursts</div>
+      </div>
+      <div class="control-item">
+        <label>Request Rate</label>
+        <input type="range" id="requestRate" min="1" max="10" value="3">
+        <span class="value" id="requestRateValue">3/sec</span>
+        <div style="font-size:0.75rem;color:var(--muted)">Requests per second</div>
+      </div>
+      <div class="control-item">
+        <label>Naive Bypass Rate</label>
+        <input type="range" id="naiveBypass" min="0" max="100" value="70">
+        <span class="value" id="naiveBypassValue">70%</span>
+        <div style="font-size:0.75rem;color:var(--muted)">How often naive guardrail misses harmful advice</div>
+      </div>
+      <div class="control-item">
+        <label>Harmful Input Rate</label>
+        <input type="range" id="harmfulRate" min="0" max="100" value="50">
+        <span class="value" id="harmfulRateValue">50%</span>
+        <div style="font-size:0.75rem;color:var(--muted)">How many incoming requests contain harmful content</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Side-by-side simulation -->
+  <div class="simulation-grid">
+    <!-- Bernoulli Panel -->
+    <div class="sim-panel">
+      <div class="sim-header">
+        <h3>
+          <span class="chip chip-bernoulli">BERNOULLI</span>
+          Independent Failures
+        </h3>
+        <div class="sim-controls">
+          <button class="btn btn-primary btn-sm" id="startBernoulli">Start</button>
+          <button class="btn btn-secondary btn-sm" id="stopBernoulli" disabled>Stop</button>
+          <button class="btn btn-secondary btn-sm" id="resetBernoulli">Reset</button>
+        </div>
+      </div>
+      <div class="sim-body">
+        <div class="pipeline" id="pipelineBernoulli">
+          <div class="pipeline-stage" id="b-queue">Queue</div>
+          <span class="pipeline-arrow">&rarr;</span>
+          <div class="pipeline-stage" id="b-llm1">LLM1</div>
+          <span class="pipeline-arrow">&rarr;</span>
+          <div class="pipeline-stage" id="b-guard">Guard</div>
+          <span class="pipeline-arrow">&rarr;</span>
+          <div class="pipeline-stage" id="b-out">Out</div>
+        </div>
+        <div class="timeline-label">Failure Injection (LLM-as-a-Judge availability):</div>
+        <div class="timeline" id="failuresBernoulli"></div>
+        <div class="timeline-label">Guardrail Mode:</div>
+        <div class="timeline" id="timelineBernoulli"></div>
+        <div class="timeline-label">Outcome (last 50 requests):</div>
+        <div class="timeline" id="outcomeBernoulli"></div>
+        <div class="stats-grid">
+          <div class="stat-item">
+            <span class="stat-label">Total Requests</span>
+            <span class="stat-value" id="b-total">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Harmful Inputs</span>
+            <span class="stat-value" id="b-harmful">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">LLM Guardrail</span>
+            <span class="stat-value good" id="b-llm">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Naive Fallback</span>
+            <span class="stat-value warning" id="b-naive">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Harmful Blocked</span>
+            <span class="stat-value good" id="b-blocked">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Harmful ESCAPED</span>
+            <span class="stat-value danger" id="b-escaped">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Safety Rate</span>
+            <span class="stat-value" id="b-safety">-</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Max Failure Burst</span>
+            <span class="stat-value" id="b-burst">0</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ARTA Panel -->
+    <div class="sim-panel">
+      <div class="sim-header">
+        <h3>
+          <span class="chip chip-arta">ARTA</span>
+          Bursty Failures
+        </h3>
+        <div class="sim-controls">
+          <button class="btn btn-primary btn-sm" id="startArta">Start</button>
+          <button class="btn btn-secondary btn-sm" id="stopArta" disabled>Stop</button>
+          <button class="btn btn-secondary btn-sm" id="resetArta">Reset</button>
+        </div>
+      </div>
+      <div class="sim-body">
+        <div class="pipeline" id="pipelineArta">
+          <div class="pipeline-stage" id="a-queue">Queue</div>
+          <span class="pipeline-arrow">&rarr;</span>
+          <div class="pipeline-stage" id="a-llm1">LLM1</div>
+          <span class="pipeline-arrow">&rarr;</span>
+          <div class="pipeline-stage" id="a-guard">Guard</div>
+          <span class="pipeline-arrow">&rarr;</span>
+          <div class="pipeline-stage" id="a-out">Out</div>
+        </div>
+        <div class="timeline-label">Failure Injection (LLM-as-a-Judge availability):</div>
+        <div class="timeline" id="failuresArta"></div>
+        <div class="timeline-label">Guardrail Mode:</div>
+        <div class="timeline" id="timelineArta"></div>
+        <div class="timeline-label">Outcome (last 50 requests):</div>
+        <div class="timeline" id="outcomeArta"></div>
+        <div class="stats-grid">
+          <div class="stat-item">
+            <span class="stat-label">Total Requests</span>
+            <span class="stat-value" id="a-total">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Harmful Inputs</span>
+            <span class="stat-value" id="a-harmful">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">LLM Guardrail</span>
+            <span class="stat-value good" id="a-llm">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Naive Fallback</span>
+            <span class="stat-value warning" id="a-naive">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Harmful Blocked</span>
+            <span class="stat-value good" id="a-blocked">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Harmful ESCAPED</span>
+            <span class="stat-value danger" id="a-escaped">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Safety Rate</span>
+            <span class="stat-value" id="a-safety">-</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Max Failure Burst</span>
+            <span class="stat-value" id="a-burst">0</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Legend -->
+  <div class="legend">
+    <div class="legend-item">
+      <div class="legend-color" style="background:var(--teal)"></div>
+      <span>LLM Available / Blocked (L/B)</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-color" style="background:var(--orange)"></div>
+      <span>Naive Fallback (N)</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-color" style="background:var(--red)"></div>
+      <span>LLM Failed / Harmful Escaped (F/!)</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-color" style="background:#94a3b8"></div>
+      <span>Safe Input (S)</span>
+    </div>
+  </div>
+
+  <!-- Metrics Explanation -->
+  <div class="metrics-help">
+    <h4>Understanding the Simulation</h4>
+    <div class="metrics-grid">
+      <div class="metric-explain">
+        <strong>Bernoulli Process</strong>
+        <p>Each request fails independently with fixed probability. Like flipping a biased coin - no memory of previous flips. Models random, uncorrelated outages.</p>
+      </div>
+      <div class="metric-explain">
+        <strong>ARTA Process</strong>
+        <p>Failures are autocorrelated - if one request fails, the next is more likely to fail too. Models real-world cascading failures: network outages, rate limiting, service degradation.</p>
+      </div>
+      <div class="metric-explain">
+        <strong>Harmful ESCAPED</strong>
+        <p>Harmful requests NOT caught by the guardrail - these reach the user. Lower is better.</p>
+      </div>
+      <div class="metric-explain">
+        <strong>Safety Rate</strong>
+        <p>Percentage of harmful inputs blocked: <code>blocked / harmful × 100</code>. Higher is better.</p>
+      </div>
+      <div class="metric-explain">
+        <strong>Max Failure Burst</strong>
+        <p>Longest consecutive sequence of LLM failures. During a burst, ALL requests use the weak naive fallback. ARTA produces longer bursts than Bernoulli.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Insights -->
+  <div class="insights" id="insights" style="display:none">
+    <h3>Key Observations</h3>
+    <ul id="insightsList"></ul>
+  </div>
+</main>
+
+<script>
+// ============= Stochastic Processes =============
+
+class BernoulliProcess {
+  constructor(failureProbability) {
+    this.p = failureProbability;
+  }
+  nextFailure() {
+    return Math.random() < this.p;
+  }
+}
+
+class ArtaProcess {
+  constructor(failureProbability, autocorrelation) {
+    this.p = failureProbability;
+    this.rho = autocorrelation;
+    this.stdDev = Math.sqrt(1 - this.rho * this.rho);
+    this.z = this.gaussianRandom();
+  }
+
+  gaussianRandom() {
+    // Box-Muller transform
+    const u1 = Math.random();
+    const u2 = Math.random();
+    return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+  }
+
+  normalCdf(x) {
+    // Approximation of standard normal CDF
+    if (x < -8) return 0;
+    if (x > 8) return 1;
+    const t = 1.0 / (1.0 + 0.2316419 * Math.abs(x));
+    const d = 0.3989422804014327;
+    const p = d * Math.exp(-x * x / 2.0) * t *
+      (0.319381530 + t * (-0.356563782 + t * (1.781477937 + t * (-1.821255978 + t * 1.330274429))));
+    return x > 0 ? 1 - p : p;
+  }
+
+  nextFailure() {
+    const innovation = this.gaussianRandom();
+    this.z = this.rho * this.z + this.stdDev * innovation;
+    const u = this.normalCdf(this.z);
+    return u < this.p;
+  }
+}
+
+// ============= Simulation State =============
+
+function createSimState() {
+  return {
+    running: false,
+    intervalId: null,
+    process: null,
+    total: 0,
+    harmful: 0,
+    llmCalls: 0,
+    naiveCalls: 0,
+    blocked: 0,
+    escaped: 0,
+    failures: [],    // failure injection pattern
+    timeline: [],    // guardrail mode
+    outcomes: [],    // final outcomes
+    currentBurst: 0,
+    maxBurst: 0
+  };
+}
+
+const state = {
+  bernoulli: createSimState(),
+  arta: createSimState()
+};
+
+// ============= DOM Elements =============
+
+const $ = id => document.getElementById(id);
+
+const controls = {
+  failureProb: $('failureProb'),
+  artaRho: $('artaRho'),
+  requestRate: $('requestRate'),
+  naiveBypass: $('naiveBypass'),
+  harmfulRate: $('harmfulRate')
+};
+
+const buttons = {
+  bernoulli: {
+    start: $('startBernoulli'),
+    stop: $('stopBernoulli'),
+    reset: $('resetBernoulli')
+  },
+  arta: {
+    start: $('startArta'),
+    stop: $('stopArta'),
+    reset: $('resetArta')
+  }
+};
+
+// ============= Simulation Logic =============
+
+function getParams() {
+  return {
+    failureProb: parseInt(controls.failureProb.value) / 100,
+    artaRho: parseInt(controls.artaRho.value) / 100,
+    requestRate: parseInt(controls.requestRate.value),
+    naiveBypass: parseInt(controls.naiveBypass.value) / 100,
+    harmfulRate: parseInt(controls.harmfulRate.value) / 100
+  };
+}
+
+function processRequest(simState, process, params) {
+  simState.total++;
+
+  // Determine if this input is harmful based on configured rate
+  const isHarmful = Math.random() < params.harmfulRate;
+  if (isHarmful) simState.harmful++;
+
+  // Check if guardrail LLM fails (failure injection)
+  const llmFailed = process.nextFailure();
+
+  // Record failure injection pattern
+  simState.failures.push(llmFailed ? 'fail' : 'ok');
+  if (simState.failures.length > 50) simState.failures.shift();
+
+  // Track burst length
+  if (llmFailed) {
+    simState.currentBurst++;
+    simState.maxBurst = Math.max(simState.maxBurst, simState.currentBurst);
+    simState.naiveCalls++;
+  } else {
+    simState.currentBurst = 0;
+    simState.llmCalls++;
+  }
+
+  // Determine if harmful advice escapes
+  let escaped = false;
+  if (isHarmful) {
+    if (llmFailed) {
+      // Naive guardrail: misses with naiveBypass probability
+      escaped = Math.random() < params.naiveBypass;
+    } else {
+      // LLM guardrail: 99% detection (1% miss)
+      escaped = Math.random() < 0.01;
+    }
+
+    if (escaped) {
+      simState.escaped++;
+    } else {
+      simState.blocked++;
+    }
+  }
+
+  // Record timeline (guardrail mode)
+  simState.timeline.push(llmFailed ? 'naive' : 'llm');
+  if (simState.timeline.length > 50) simState.timeline.shift();
+
+  // Record outcome
+  if (isHarmful) {
+    simState.outcomes.push(escaped ? 'escaped' : 'blocked');
+  } else {
+    simState.outcomes.push('safe');
+  }
+  if (simState.outcomes.length > 50) simState.outcomes.shift();
+
+  return { llmFailed, isHarmful, escaped };
+}
+
+function updateUI(prefix, simState) {
+  $(prefix + '-total').textContent = simState.total;
+  $(prefix + '-harmful').textContent = simState.harmful;
+  $(prefix + '-llm').textContent = simState.llmCalls;
+  $(prefix + '-naive').textContent = simState.naiveCalls;
+  $(prefix + '-blocked').textContent = simState.blocked;
+  $(prefix + '-escaped').textContent = simState.escaped;
+  $(prefix + '-burst').textContent = simState.maxBurst;
+
+  // Safety rate
+  const safetyRate = simState.harmful > 0
+    ? ((simState.blocked / simState.harmful) * 100).toFixed(1) + '%'
+    : '-';
+  const safetyEl = $(prefix + '-safety');
+  safetyEl.textContent = safetyRate;
+  if (simState.harmful > 0) {
+    const rate = simState.blocked / simState.harmful;
+    safetyEl.className = 'stat-value ' + (rate >= 0.9 ? 'good' : rate >= 0.7 ? 'warning' : 'danger');
+  }
+
+  // Update failure injection timeline
+  const failuresEl = $('failures' + (prefix === 'b' ? 'Bernoulli' : 'Arta'));
+  failuresEl.innerHTML = simState.failures.map(f =>
+    `<div class="timeline-cell cell-${f}">${f === 'fail' ? 'F' : ''}</div>`
+  ).join('');
+
+  // Update guardrail mode timeline
+  const timelineEl = $('timeline' + (prefix === 'b' ? 'Bernoulli' : 'Arta'));
+  timelineEl.innerHTML = simState.timeline.map(t =>
+    `<div class="timeline-cell cell-${t}">${t === 'llm' ? 'L' : 'N'}</div>`
+  ).join('');
+
+  // Update outcomes
+  const outcomeEl = $('outcome' + (prefix === 'b' ? 'Bernoulli' : 'Arta'));
+  outcomeEl.innerHTML = simState.outcomes.map(o => {
+    if (o === 'escaped') return '<div class="timeline-cell cell-escaped">!</div>';
+    if (o === 'blocked') return '<div class="timeline-cell cell-blocked">B</div>';
+    return '<div class="timeline-cell" style="background:#94a3b8">S</div>';
+  }).join('');
+}
+
+function animatePipeline(prefix, result) {
+  const guardEl = $(prefix + '-guard');
+  const outEl = $(prefix + '-out');
+
+  // Flash guardrail
+  guardEl.className = 'pipeline-stage ' + (result.llmFailed ? 'naive' : 'llm');
+
+  // Flash output
+  if (result.isHarmful && result.escaped) {
+    outEl.className = 'pipeline-stage escaped';
+  } else {
+    outEl.className = 'pipeline-stage';
+  }
+
+  // Reset after short delay
+  setTimeout(() => {
+    guardEl.className = 'pipeline-stage';
+    outEl.className = 'pipeline-stage';
+  }, 200);
+}
+
+
+function showInsights() {
+  const insights = $('insights');
+  const list = $('insightsList');
+  insights.style.display = 'block';
+
+  const b = state.bernoulli;
+  const a = state.arta;
+
+  const items = [];
+
+  // Compare escape rates
+  if (b.harmful > 0 && a.harmful > 0) {
+    const bEscapeRate = (b.escaped / b.harmful * 100).toFixed(1);
+    const aEscapeRate = (a.escaped / a.harmful * 100).toFixed(1);
+
+    if (a.escaped > b.escaped) {
+      items.push(`ARTA let <strong>${a.escaped - b.escaped} more</strong> harmful requests escape (${aEscapeRate}% vs ${bEscapeRate}%)`);
+    }
+  }
+
+  // Compare burst lengths
+  if (a.maxBurst > b.maxBurst) {
+    items.push(`ARTA max failure burst: <strong>${a.maxBurst}</strong> consecutive failures vs Bernoulli's ${b.maxBurst}`);
+  }
+
+  // Key insight
+  items.push(`<strong>Key insight:</strong> ARTA's bursts create prolonged unsafe periods, which can result in decreased system safety`);
+
+  list.innerHTML = items.map(i => `<li>${i}</li>`).join('');
+}
+
+function tickSimulation(simKey, prefix) {
+  const params = getParams();
+  const simState = state[simKey];
+
+  const result = processRequest(simState, simState.process, params);
+  updateUI(prefix, simState);
+  animatePipeline(prefix, result);
+
+  // Show insights when both have enough data
+  if (state.bernoulli.total >= 20 && state.arta.total >= 20) {
+    showInsights();
+  }
+}
+
+function startSimulation(simKey) {
+  const params = getParams();
+  const simState = state[simKey];
+  const btns = buttons[simKey];
+  const prefix = simKey === 'bernoulli' ? 'b' : 'a';
+
+  // Initialize process
+  if (simKey === 'bernoulli') {
+    simState.process = new BernoulliProcess(params.failureProb);
+  } else {
+    simState.process = new ArtaProcess(params.failureProb, params.artaRho);
+  }
+
+  // Start simulation loop
+  const interval = 1000 / params.requestRate;
+  simState.intervalId = setInterval(() => tickSimulation(simKey, prefix), interval);
+  simState.running = true;
+
+  btns.start.disabled = true;
+  btns.stop.disabled = false;
+  btns.start.textContent = 'Running...';
+}
+
+function stopSimulation(simKey) {
+  const simState = state[simKey];
+  const btns = buttons[simKey];
+
+  if (simState.intervalId) {
+    clearInterval(simState.intervalId);
+    simState.intervalId = null;
+  }
+  simState.running = false;
+
+  btns.start.disabled = false;
+  btns.stop.disabled = true;
+  btns.start.textContent = 'Start';
+}
+
+function resetSimulation(simKey) {
+  stopSimulation(simKey);
+
+  const prefix = simKey === 'bernoulli' ? 'b' : 'a';
+  const failuresId = simKey === 'bernoulli' ? 'failuresBernoulli' : 'failuresArta';
+  const timelineId = simKey === 'bernoulli' ? 'timelineBernoulli' : 'timelineArta';
+  const outcomeId = simKey === 'bernoulli' ? 'outcomeBernoulli' : 'outcomeArta';
+
+  // Reset state
+  state[simKey] = createSimState();
+
+  // Reset UI
+  updateUI(prefix, state[simKey]);
+  $(failuresId).innerHTML = '';
+  $(timelineId).innerHTML = '';
+  $(outcomeId).innerHTML = '';
+
+  // Hide insights if both are reset
+  if (state.bernoulli.total === 0 && state.arta.total === 0) {
+    $('insights').style.display = 'none';
+  }
+}
+
+// ============= Event Listeners =============
+
+// Bernoulli controls
+buttons.bernoulli.start.addEventListener('click', () => startSimulation('bernoulli'));
+buttons.bernoulli.stop.addEventListener('click', () => stopSimulation('bernoulli'));
+buttons.bernoulli.reset.addEventListener('click', () => resetSimulation('bernoulli'));
+
+// ARTA controls
+buttons.arta.start.addEventListener('click', () => startSimulation('arta'));
+buttons.arta.stop.addEventListener('click', () => stopSimulation('arta'));
+buttons.arta.reset.addEventListener('click', () => resetSimulation('arta'));
+
+// Update displayed values
+controls.failureProb.addEventListener('input', e => {
+  $('failureProbValue').textContent = e.target.value + '%';
+});
+controls.artaRho.addEventListener('input', e => {
+  $('artaRhoValue').textContent = (e.target.value / 100).toFixed(2);
+});
+controls.requestRate.addEventListener('input', e => {
+  $('requestRateValue').textContent = e.target.value + '/sec';
+});
+controls.naiveBypass.addEventListener('input', e => {
+  $('naiveBypassValue').textContent = e.target.value + '%';
+});
+controls.harmfulRate.addEventListener('input', e => {
+  $('harmfulRateValue').textContent = e.target.value + '%';
+});
+</script>
+
+</body>
+</html>

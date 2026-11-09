@@ -107,3 +107,16 @@ tasks.register<JavaExec>("runStochasticService") {
     // Enable console input for Ctrl+C
     standardInput = System.`in`
 }
+
+// Task to run the Failure Simulation visualization server
+// Usage: ./gradlew runSimulation
+tasks.register<JavaExec>("runSimulation") {
+    group = "application"
+    description = "Run the Failure Injection Simulator visualization on port 8081"
+    classpath = sourceSets["test"].runtimeClasspath
+    mainClass.set("fallback.FailureSimulationServer")
+    args = listOf("8081")
+
+    // Enable console input for Ctrl+C
+    standardInput = System.`in`
+}
