@@ -1,8 +1,4 @@
-# Provider configuration for the Health Advisor app.
-# Copy this file to app/providers.yaml to enable fallback support.
-#
 # The app tries providers in order: primary first, then fallbacks.
-#
 format: providers/1
 
 providers:

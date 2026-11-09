@@ -19,10 +19,10 @@ import java.util.concurrent.Executors;
  *
  * <h2>Usage</h2>
  * <pre>
- * java fallback.FailureSimulationServer 8091
+ * java fallback.FailureSimulationServer 8081
  * </pre>
  *
- * Then open http://localhost:8091 in your browser.
+ * Then open http://localhost:8081 in your browser.
  */
 public class FailureSimulationServer {
 

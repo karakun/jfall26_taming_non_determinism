@@ -120,3 +120,14 @@ tasks.register<JavaExec>("runSimulation") {
     // Enable console input for Ctrl+C
     standardInput = System.`in`
 }
+
+// Task to run the PipelineProxyService for full pipeline testing
+// Usage: ./gradlew runPipelineProxy
+tasks.register<JavaExec>("runPipelineProxy") {
+    group = "application"
+    description = "Run the Pipeline Proxy for full pipeline PUnit testing"
+    classpath = sourceSets["test"].runtimeClasspath
+    mainClass.set("fallback.PipelineProxyService")
+    args = listOf("8092", "http://localhost:8080")
+    standardInput = System.`in`
+}
