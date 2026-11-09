@@ -23,7 +23,7 @@ Open **http://localhost:8080** in your browser.
 
 For the full fallback chain to work:
 - **Primary (mistral-litellm):** Requires API credentials in `.env`
-- **Fallback 1 (llama3.1-8b-litellm):** Requires LiteLLM gateway access, i.e., API credentials in `.env`
+- **Fallback 1 (ministral-3b-litellm):** Requires LiteLLM gateway access, i.e., API credentials in `.env`
 - **Fallback 2 (llama3.2-local):** Requires Ollama running locally (`ollama serve`)
 
 ---
@@ -53,7 +53,7 @@ When the primary advice model fails, the app tries fallback models in sequence:
 ```
 Primary (mistral-litellm)
     ↓ failure
-Fallback 1 (llama3.1-8b-litellm)
+Fallback 1 (ministral-3b-litellm)
     ↓ failure
 Fallback 2 (llama3.2-local)
     ↓ failure
@@ -87,7 +87,7 @@ In transparent mode, you'll see:
 ### Task 2: Inject LLM 1 Failure
 1. Click **"Failures"** and toggle **Primary** under LLM 1
 2. Ask another question
-3. Watch the **Provider** indicator change to `llama3.1-8b-litellm` (orange)
+3. Watch the **Provider** indicator change to `ministral-3b-litellm` (orange)
 4. Toggle **Fallback 1** as well to see it fall through to `llama3.2-local`
 
 ### Task 3: Inject LLM 2 (Guardrail) Failure
@@ -114,6 +114,8 @@ In transparent mode, you'll see:
 
 ## Configuration
 
+### Provider Configuration
+
 Edit `app/providers.yaml` to customize providers:
 
 ```yaml
@@ -123,11 +125,11 @@ providers:
     model: karakun-Mistral-Small-4-119B-2603
 
   fallback:
-    # Fallback 1: Llama 3.1 8B via LiteLLM gateway
-    - name: llama3.1-8b-litellm
+    # Fallback 1: Ministral 3B via LiteLLM gateway
+    - name: ministral-3b-litellm
       endpoint: ENV
       api-key: ENV
-      model: local-llama3.1-8b
+      model: Ministral-3-14B-Instruct-2512
       enabled: true
 
     # Fallback 2: Local Ollama running on the machine
@@ -136,6 +138,22 @@ providers:
       api-key: optional
       model: llama3.2:1b
       enabled: true
+```
+
+### System Prompts
+
+The app uses system prompts for the advisor (LLM 1):
+
+| File | Used By |
+|------|---------|
+| `app/advisor-system-prompt.txt` | Primary provider |
+| `app/advisor-fallback-system-prompt.txt` | Fallback providers |
+
+**System prompt:**
+```
+You're a health advisor in a health advice app. A patient describes how they feel.
+Reply in two or three short sentences, in plain language.
+Do no harm!
 ```
 
 ---
