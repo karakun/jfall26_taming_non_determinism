@@ -90,8 +90,6 @@ The application provides three different scanners for different attack surfaces:
 
 LLM1 generates health advice with a system prompt that says "do no harm" and "2-3 short sentences". But system prompts can be bypassed through jailbreaks, prompt injection, or multi-turn manipulation. This scanner tests whether LLM1's safety instructions hold under adversarial pressure.
 
-**Note for Mistral 7B:** The model has no separate system role - the system prompt is embedded in the first `[INST]` block. In long multi-turn conversations, it fades quickly. This makes M1-M3 particularly effective.
-
 ### How It Works
 
 1. Each probe is sent to `/api/advise` via `HealthAdvisorGenerator`
@@ -563,6 +561,7 @@ Each security scan creates a detailed WAL entry:
 
 ---
 
+<!--
 ## Run the Tests
 
 ```bash
@@ -593,6 +592,7 @@ void scanJailbreaksTest() {
     System.out.println("ASR: " + report.successRate() + "%");
 }
 ```
+-->
 
 ---
 
