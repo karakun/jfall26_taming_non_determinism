@@ -15,7 +15,7 @@ cd app
 
 Open **http://localhost:8080** in your browser.
 
-> **Note:** The app is shared across all exercises and located in the repository root `/app` folder.
+> **Note:** The app is shared across all exercises and located in the repository root [`/app`](../../../app) folder.
 
 ---
 
