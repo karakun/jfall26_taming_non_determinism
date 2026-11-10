@@ -4,9 +4,7 @@ services:
     type: guardrail                     # the health advice guardrail
     configuration:
       guardrail: llm                    # llm: a language model judges the advice; keyword: matching harmful phrases
-      # No provider: any server that speaks the OpenAI chat-completions protocol.
-      # Which one is set by MAVAI_LLM_ENDPOINT in .env.
-      model: mistralai/Mistral-Small-4-119B-2603
+      # Model and endpoint are configured in app/providers.yaml
       system-prompt: {file: guardrail-system-prompt.txt}
       temperature: 0.7                  # how much randomness goes into each answer
       max-tokens: 120

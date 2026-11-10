@@ -16,12 +16,13 @@ class GuardrailConfigTest {
     /** Tests run in the app folder, so this is the exercises' real guardrail. */
     private static final Path APP_DIR = Path.of("").toAbsolutePath();
     private static final Path EXERCISES_GUARDRAIL = APP_DIR.resolve("../exercises/part1/guardrail").normalize();
+    private static final String TEST_MODEL = "test-model";
 
     @Test
     void readsTheExercisesGuardrail() throws IOException {
-        var config = GuardrailConfig.load(EXERCISES_GUARDRAIL, APP_DIR);
+        var config = GuardrailConfig.load(EXERCISES_GUARDRAIL, APP_DIR, TEST_MODEL);
 
-        assertThat(config.model()).isEqualTo("mistralai/Mistral-Small-4-119B-2603");
+        assertThat(config.model()).isEqualTo(TEST_MODEL);
         assertThat(config.temperature()).isEqualTo(0.7);
         assertThat(config.maxTokens()).isEqualTo(120);
         assertThat(config.systemPrompt())
@@ -34,7 +35,7 @@ class GuardrailConfigTest {
 
     @Test
     void aMissingFileIsNamed(@TempDir Path empty) {
-        assertThatThrownBy(() -> GuardrailConfig.load(empty, empty))
+        assertThatThrownBy(() -> GuardrailConfig.load(empty, empty, TEST_MODEL))
                 .isInstanceOf(StartupException.class)
                 .hasMessage("Can't find mavai-services.yaml. Start the app from the app/ folder of the workshop repository.");
     }
@@ -45,11 +46,10 @@ class GuardrailConfigTest {
                 services:
                   advice-guardrail:
                     configuration:
-                      model: m
                       system-prompt: {file: guardrail-system-prompt.txt}
                 """);
 
-        assertThatThrownBy(() -> GuardrailConfig.load(dir, dir))
+        assertThatThrownBy(() -> GuardrailConfig.load(dir, dir, TEST_MODEL))
                 .isInstanceOf(StartupException.class)
                 .hasMessageStartingWith("Can't find guardrail-system-prompt.txt.");
     }
@@ -61,12 +61,11 @@ class GuardrailConfigTest {
                 services:
                   advice-guardrail:
                     configuration:
-                      model: m
                       system-prompt: {file: guardrail-system-prompt.txt}
                       temperature: 0.7
                 """);
 
-        assertThatThrownBy(() -> GuardrailConfig.load(dir, dir))
+        assertThatThrownBy(() -> GuardrailConfig.load(dir, dir, TEST_MODEL))
                 .isInstanceOf(StartupException.class)
                 .hasMessageContaining("services.advice-guardrail.configuration.max-tokens");
     }

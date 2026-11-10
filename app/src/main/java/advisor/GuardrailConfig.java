@@ -24,12 +24,11 @@ public record GuardrailConfig(
     private static final TypeReference<Map<String, Object>> SCHEMA_TYPE = new TypeReference<>() {
     };
 
-    public static GuardrailConfig load(Path guardrailDir, Path appDir) {
-        // Model comes from Settings (ENV), so we pass null here - it will be set by the caller
-        return load(guardrailDir, appDir, null);
-    }
-
     public static GuardrailConfig load(Path guardrailDir, Path appDir, String model) {
+        if (model == null || model.isBlank()) {
+            throw new StartupException("Model must be provided from providers.yaml");
+        }
+
         Path servicesFile = guardrailDir.resolve(SERVICES_FILE);
         JsonNode configuration = read(servicesFile, appDir).path("services").path(SERVICE).path("configuration");
 
@@ -39,12 +38,9 @@ public record GuardrailConfig(
                 ? readText(guardrailDir.resolve(prompt.get("file").asText()), appDir)
                 : prompt.asText();
 
-        // Model comes from Settings (ENV) if provided, otherwise fall back to YAML config
-        String effectiveModel = model != null ? model : configuration.path("model").asText();
-
         return new GuardrailConfig(
                 systemPrompt,
-                effectiveModel,
+                model,
                 required(configuration, "temperature", servicesFile, appDir).asDouble(),
                 required(configuration, "max-tokens", servicesFile, appDir).asInt(),
                 YAML.convertValue(required(configuration, "response-schema", servicesFile, appDir), SCHEMA_TYPE));
