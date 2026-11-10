@@ -441,6 +441,23 @@
   .wal-retry-btn:hover:not(:disabled) { background: var(--teal-dark); }
   .wal-retry-btn:disabled { opacity: 0.5; cursor: default; }
   .wal-retry-btn svg { width: 0.9rem; height: 0.9rem; }
+  .wal-clear-btn {
+    font: inherit;
+    font-size: 0.75rem;
+    font-weight: 650;
+    color: #fff;
+    background: var(--red);
+    border: none;
+    border-radius: 0.4rem;
+    padding: 0.35rem 0.8rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+  .wal-clear-btn:hover { background: #b91c1c; }
+  .wal-clear-btn:disabled { opacity: 0.5; cursor: default; }
+  .wal-clear-btn svg { width: 0.9rem; height: 0.9rem; }
   .wal-entries {
     flex: 1;
     overflow-y: auto;
@@ -1673,6 +1690,12 @@
           </svg>
           Retry
         </button>
+        <button type="button" class="wal-clear-btn" id="wal-clear-btn" title="Clear all entries">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+          </svg>
+          Clear
+        </button>
       </div>
     </div>
     <div class="wal-entries" id="wal-entries">
@@ -2157,6 +2180,7 @@
   const walEntries = document.getElementById("wal-entries");
   const walCount = document.getElementById("wal-count");
   const walRetryBtn = document.getElementById("wal-retry-btn");
+  const walClearBtn = document.getElementById("wal-clear-btn");
   let selectedWalEntry = null;
   let selectedWalRequest = null;
   let selectedWalResponse = null;
@@ -2410,6 +2434,38 @@
   }
 
   walRetryBtn.addEventListener("click", retryWalEntry);
+
+  async function clearWalEntries() {
+    if (!confirm("Clear all WAL entries? This cannot be undone.")) {
+      return;
+    }
+    walClearBtn.disabled = true;
+    walClearBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+      <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+    </svg> Clearing...`;
+    try {
+      const response = await fetch("/api/wal/clear", { method: "POST" });
+      if (response.ok) {
+        selectedWalEntry = null;
+        selectedWalRequest = null;
+        selectedWalResponse = null;
+        selectedWalType = null;
+        walRetryBtn.disabled = true;
+        await fetchWalEntries();
+      } else {
+        console.error("Clear WAL failed:", response.status);
+      }
+    } catch (e) {
+      console.error("Clear WAL error:", e);
+    } finally {
+      walClearBtn.disabled = false;
+      walClearBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+        <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+      </svg> Clear`;
+    }
+  }
+
+  walClearBtn.addEventListener("click", clearWalEntries);
 
   // Initial load
   fetchWalEntries();

@@ -7,9 +7,21 @@ The app is a fictional workshop demo and gives no medical advice.
 ## What you need
 
 - A JDK, version 21 or newer. Check with `java -version`.
-- An LLM endpoint. Copy `.env.example` in this folder to `.env` and configure:
-  - **Workshop participants:** Use the endpoint and key handed out at the workshop.
-  - **Using your own LLM:** Set any OpenAI-compatible endpoint (OpenAI, Azure, local Ollama, etc.)
+- An LLM endpoint. Copy `.env.example` in this folder to `.env` and configure your API.
+
+### Recommended: Use your own LLM
+
+**Best practice is to use your own LLM provider** for optimal performance:
+- **OpenAI**: `https://api.openai.com/v1/chat/completions`
+- **Azure OpenAI**: `https://<resource>.openai.azure.com/openai/deployments/<deployment>/chat/completions`
+- **Local Ollama**: `http://localhost:11434/v1/chat/completions` (no API key required)
+- **Any OpenAI-compatible API**
+
+### Fallback: Workshop API key
+
+If you don't have your own LLM provider, you can use the shared workshop API key (handed out at the workshop). **Note:** The workshop key is shared by all participants and may experience rate limiting or slower responses during peak usage.
+
+---
 
 The app always talks to the real model, so it doesn't use the exercises' `.env`. You can also set `MAVAI_LLM_ENDPOINT` and `MAVAI_LLM_API_KEY` as environment variables, which take precedence over the file.
 

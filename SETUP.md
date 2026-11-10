@@ -90,14 +90,21 @@ Stop it with Ctrl+C. The setup check starts the replay only to test it and stops
 
 ## In the workshop
 
-1. You get the API key. In the `app/` folder, copy `.env.example` to `.env` and put the key after `MAVAI_LLM_API_KEY=`. Run `./gradlew checkSetup` in `exercises/part1` again: the last line then says the API accepts your key.
-2. Start the replay in its own terminal (`./gradlew run` in `replay/`, as in step 4) and **leave it running until the end of the workshop**.
+1. Start the replay in its own terminal (`./gradlew run` in `replay/`, as in step 4) and **leave it running until the end of the workshop**.
+2. Configure your LLM endpoint in `app/.env` (see below).
 
-The demo app talks to the live model through the Infomaniak API; the exercises talk to the replay.
+The demo app talks to the live model; the exercises talk to the replay.
 
-## Using your own LLM endpoint
+## Configuring your LLM endpoint
 
-You can use any OpenAI-compatible API instead of the workshop endpoint. In `app/.env`, configure:
+### Recommended: Use your own API key
+
+**Best practice is to use your own LLM provider.** This gives you:
+- Full control over rate limits and performance
+- No shared resources with other workshop participants
+- Ability to experiment freely without restrictions
+
+You can use any OpenAI-compatible API. In `app/.env`, configure:
 
 ```
 MAVAI_LLM_ENDPOINT=<your-endpoint>
@@ -111,3 +118,17 @@ Supported endpoints include:
 - **Any OpenAI-compatible API** (e.g., Together.ai, Anyscale, local LLM servers)
 
 To use a different model, update the `model` field in `app/providers.yaml`.
+
+### Fallback: Workshop API key
+
+If you don't have access to your own LLM provider, you can use the shared workshop API key handed out at the workshop.
+
+**Important:** The workshop API key is shared by all participants. This may cause:
+- **Rate limiting** when many participants make requests simultaneously
+- **Slower responses** during peak usage
+- **Occasional timeouts** under heavy load
+
+To use the workshop key:
+1. Copy `app/.env.example` to `app/.env`
+2. Add the key after `MAVAI_LLM_API_KEY=`
+3. Run `./gradlew checkSetup` in `exercises/part1` to verify the key works

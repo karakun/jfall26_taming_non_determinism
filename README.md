@@ -21,12 +21,7 @@ LLM integrations and ML-powered services are being adopted at scale in productio
 ## Prerequisites
 
 - **Java 21+** (via SDKMAN or direct install)
-- **LLM API Access** - one of:
-  - Workshop API key (provided at the workshop)
-  - Your own OpenAI API key
-  - Azure OpenAI endpoint
-  - Local Ollama installation
-  - Any OpenAI-compatible API
+- **LLM API Access** (recommended: your own API key - see below)
 - **Browser** for the Health Advisor UI
 
 ---
@@ -48,7 +43,11 @@ cp .env.example .env
 open http://localhost:8080
 ```
 
-### Using Your Own LLM
+### LLM Configuration
+
+#### Recommended: Use Your Own API Key
+
+**Best practice is to use your own LLM provider** for optimal performance. The workshop API key is shared by all participants and may experience rate limiting or slower responses during peak usage.
 
 You can use any OpenAI-compatible endpoint. Edit `app/.env`:
 
@@ -57,12 +56,20 @@ You can use any OpenAI-compatible endpoint. Edit `app/.env`:
 MAVAI_LLM_ENDPOINT=https://api.openai.com/v1/chat/completions
 MAVAI_LLM_API_KEY=sk-...
 
+# Azure OpenAI
+MAVAI_LLM_ENDPOINT=https://<resource>.openai.azure.com/openai/deployments/<deployment>/chat/completions
+MAVAI_LLM_API_KEY=<your-key>
+
 # Local Ollama (no API key needed)
 MAVAI_LLM_ENDPOINT=http://localhost:11434/v1/chat/completions
 MAVAI_LLM_API_KEY=optional
 ```
 
 To change the model, edit `model` in `app/providers.yaml`.
+
+#### Fallback: Workshop API Key
+
+If you don't have your own LLM provider, you can use the shared workshop API key (provided at the workshop). Note that this may cause performance issues when many participants use it simultaneously.
 
 ---
 

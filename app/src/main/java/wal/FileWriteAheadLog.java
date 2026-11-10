@@ -183,6 +183,19 @@ public class FileWriteAheadLog {
     }
 
     /**
+     * Clears all entries from the WAL by deleting the file.
+     *
+     * @throws IOException if the delete fails
+     */
+    public void clear() throws IOException {
+        synchronized (writeLock) {
+            if (Files.exists(walFile)) {
+                Files.delete(walFile);
+            }
+        }
+    }
+
+    /**
      * Returns the path to the WAL file.
      */
     public Path getWalFile() {

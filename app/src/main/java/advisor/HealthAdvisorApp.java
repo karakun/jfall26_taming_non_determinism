@@ -178,6 +178,7 @@ public class HealthAdvisorApp {
         // Part 3: WAL endpoints
         server.createContext("/api/wal/list", HealthAdvisorApp::walList);
         server.createContext("/api/wal/retry", HealthAdvisorApp::walRetry);
+        server.createContext("/api/wal/clear", HealthAdvisorApp::walClear);
 
         // Part 4: Security scan endpoints (LLM1 Advisor)
         server.createContext("/api/security/scan/start", HealthAdvisorApp::startSecurityScan);
@@ -529,6 +530,28 @@ public class HealthAdvisorApp {
                 "adviceResult", adviceResult,
                 "checkResult", checkResult != null ? checkResult : Map.of()
         )));
+    }
+
+    /** Part 3: Clear all WAL entries */
+    private static void walClear(HttpExchange exchange) throws IOException {
+        if (!exchange.getRequestMethod().equals("POST")) {
+            send(exchange, 405, "application/json", JSON.writeValueAsString(Map.of("error", "Use POST.")));
+            return;
+        }
+
+        try {
+            wal.clear();
+            System.out.println("WAL: cleared all entries");
+            send(exchange, 200, "application/json", JSON.writeValueAsString(Map.of(
+                    "success", true,
+                    "message", "WAL cleared"
+            )));
+        } catch (Exception e) {
+            System.err.println("Failed to clear WAL: " + e.getMessage());
+            send(exchange, 500, "application/json", JSON.writeValueAsString(Map.of(
+                    "error", "Failed to clear WAL: " + e.getMessage()
+            )));
+        }
     }
 
     /** Merge .env file with system environment. System env takes precedence. */
