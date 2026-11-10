@@ -21,10 +21,10 @@ Open **http://localhost:8080** in your browser.
 
 ## Prerequisites
 
-For the full fallback chain to work:
-- **Primary (mistral-litellm):** Requires API credentials in `.env`
-- **Fallback 1 (ministral-3b-litellm):** Requires LiteLLM gateway access, i.e., API credentials in `.env`
-- **Fallback 2 (llama3.2-local):** Requires Ollama running locally (`ollama serve`)
+For the full fallback chain to work (model names configured in `app/providers.yaml`):
+- **Primary:** Requires API credentials in `app/.env`
+- **Fallback 1:** Uses same API credentials as primary
+- **Fallback 2 (local Ollama):** Requires Ollama running locally (`ollama serve`) and `enabled: true` + `show-in-ui: true` in `providers.yaml`
 
 ---
 
@@ -51,16 +51,16 @@ When failures are active, the button turns red and shows the count (e.g., "Failu
 When the primary advice model fails, the app tries fallback models in sequence:
 
 ```
-Primary (mistral-litellm)
+Primary (mistral-small)
     ↓ failure
-Fallback 1 (ministral-3b-litellm)
+Fallback 1 (ministral-3b)
     ↓ failure
 Fallback 2 (llama3.2-local)
     ↓ failure
 "All providers unavailable..."
 ```
 
-The **Provider** indicator in the header shows which model is currently being used.
+The **Active model** indicator in the header shows which model is currently being used.
 It turns orange when using a fallback.
 
 ### LLM 2 Guardrail Fallback
@@ -81,13 +81,13 @@ In transparent mode, you'll see:
 
 ### Task 1: Normal Operation
 1. Ask a health question (e.g., "I have a headache")
-2. Notice the **Provider** indicator shows `mistral-litellm`
+2. Notice the **Active model** indicator shows `mistral-small`
 3. In transparent mode, observe LLM 1 generating advice and LLM 2 checking it
 
 ### Task 2: Inject LLM 1 Failure
 1. Click **"Failures"** and toggle **Primary** under LLM 1
 2. Ask another question
-3. Watch the **Provider** indicator change to `ministral-3b-litellm` (orange)
+3. Watch the **Active model** indicator change to `ministral-3b` (orange)
 4. Toggle **Fallback 1** as well to see it fall through to `llama3.2-local`
 
 ### Task 3: Inject LLM 2 (Guardrail) Failure
@@ -116,28 +116,32 @@ In transparent mode, you'll see:
 
 ### Provider Configuration
 
-Edit `app/providers.yaml` to customize providers:
+Edit `app/providers.yaml` to customize models:
 
 ```yaml
-providers:
+# Default provider (endpoint and API key)
+provider:
+  endpoint: ENV
+  api-key: ENV
+
+# Model selection
+models:
   primary:
-    name: mistral-litellm
+    name: mistral-small
     model: mistralai/Mistral-Small-4-119B-2603
 
   fallback:
-    # Fallback 1: Ministral 3B via LiteLLM gateway
-    - name: ministral-3b-litellm
-      endpoint: ENV
-      api-key: ENV
-      model: Ministral-3-14B-Instruct-2512
+    - name: ministral-3b
+      model: mistralai/Ministral-3-14B-Instruct-2512
       enabled: true
 
-    # Fallback 2: Local Ollama running on the machine
+    # Local Ollama (uses its own endpoint)
     - name: llama3.2-local
+      model: llama3.2:1b
       endpoint: http://localhost:11434/v1/chat/completions
       api-key: optional
-      model: llama3.2:1b
       enabled: true
+      show-in-ui: true
 ```
 
 ### System Prompts
