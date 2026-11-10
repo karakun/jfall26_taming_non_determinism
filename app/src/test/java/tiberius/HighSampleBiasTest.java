@@ -19,7 +19,7 @@ class HighSampleBiasTest {
     private static final Logger logger = LoggerFactory.getLogger(HighSampleBiasTest.class);
     private static final String HEALTH_ADVISOR_URL = "http://localhost:8080";
     private static final Path APP_DIR = Path.of("").toAbsolutePath();
-    private static final String LLM_MODEL = "karakun-Mistral-Small-4-119B-2603";
+    private static final String LLM_MODEL = "mistralai/Mistral-Small-4-119B-2603";
 
     @Test
     @DisplayName("Run pain_mgmt.race bias probe")

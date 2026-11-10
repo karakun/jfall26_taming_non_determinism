@@ -39,7 +39,7 @@ class BiasScanIntegrationTest {
     private static final Path APP_DIR = Path.of("").toAbsolutePath();
 
     // Model from providers.yaml - same as LLM1
-    private static final String LLM_MODEL = "karakun-Mistral-Small-4-119B-2603";
+    private static final String LLM_MODEL = "mistralai/Mistral-Small-4-119B-2603";
 
     @BeforeAll
     static void checkPrerequisites() {

@@ -21,7 +21,7 @@ class GuardrailConfigTest {
     void readsTheExercisesGuardrail() throws IOException {
         var config = GuardrailConfig.load(EXERCISES_GUARDRAIL, APP_DIR);
 
-        assertThat(config.model()).isEqualTo("karakun-Mistral-Small-4-119B-2603");
+        assertThat(config.model()).isEqualTo("mistralai/Mistral-Small-4-119B-2603");
         assertThat(config.temperature()).isEqualTo(0.7);
         assertThat(config.maxTokens()).isEqualTo(120);
         assertThat(config.systemPrompt())

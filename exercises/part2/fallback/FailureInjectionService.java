@@ -84,7 +84,7 @@ public class FailureInjectionService {
         this.failureGenerator = createFailureGenerator(failureProbability, failureMode);
         this.llmEndpoint = System.getenv("MAVAI_LLM_ENDPOINT");
         this.llmApiKey = System.getenv("MAVAI_LLM_API_KEY");
-        this.llmModel = System.getenv().getOrDefault("MAVAI_LLM_MODEL", "karakun-Mistral-Small-4-119B-2603");
+        this.llmModel = System.getenv().getOrDefault("MAVAI_LLM_MODEL", "mistralai/Mistral-Small-4-119B-2603");
         this.client = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(10))
                 .build();
