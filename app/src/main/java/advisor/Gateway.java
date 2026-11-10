@@ -42,18 +42,17 @@ public class Gateway implements LlmGateway {
                                               double temperature, int maxTokens, Map<String, Object> responseSchema) {
         long start = System.nanoTime();
         try {
-            String requestBody = body(model, systemPrompt, userMessage, temperature, maxTokens, responseSchema);
-            System.out.println("[Gateway DEBUG] model=" + model + ", temp=" + temperature + ", maxTokens=" + maxTokens);
-            System.out.println("[Gateway DEBUG] endpoint=" + settings.endpoint());
             HttpRequest request = HttpRequest.newBuilder(settings.endpoint())
                     .timeout(requestTimeout)
                     .header("Content-Type", "application/json")
                     .header("Authorization", "Bearer " + settings.apiKey())
-                    .POST(HttpRequest.BodyPublishers.ofString(requestBody))
+                    .POST(HttpRequest.BodyPublishers.ofString(
+                            body(model, systemPrompt, userMessage, temperature, maxTokens, responseSchema)))
                     .build();
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
             long latencyMs = millisSince(start);
             if (response.statusCode() != 200) {
+                System.out.println("[Gateway] ERROR " + response.statusCode() + ": " + response.body());
                 return LlmGateway.GatewayResult.failed("The gateway answered " + response.statusCode() + ": "
                         + shorten(response.body()), latencyMs);
             }

@@ -107,7 +107,7 @@ public class FallbackGateway implements LlmGateway {
 
     /** Sets the guardrail (LLM2) configuration - health uses primary provider's status */
     public void setGuardrailConfig(String model, String endpoint, String apiKey) {
-        this.guardrailProvider = new ProviderConfig.Provider("guardrail", endpoint, apiKey, model, true);
+        this.guardrailProvider = new ProviderConfig.Provider("guardrail", endpoint, apiKey, model, true, false);
         // No separate health check needed - guardrail uses same endpoint as primary
     }
 
@@ -250,11 +250,17 @@ public class FallbackGateway implements LlmGateway {
         List<ProviderConfig.Provider> allProviders = config.allProviders();
         List<Map<String, Object>> providersStatus = new java.util.ArrayList<>();
         int healthyCount = 0;
+        int uiIndex = 0;
         for (int i = 0; i < allProviders.size(); i++) {
             ProviderConfig.Provider p = allProviders.get(i);
-            String label = i == 0 ? "Primary" : "Fallback " + i;
             HealthStatus health = getProviderHealth(i);
             if (health.isHealthy()) healthyCount++;
+
+            // Skip providers that should not be shown in UI
+            if (!p.showInUi()) continue;
+
+            String label = uiIndex == 0 ? "Primary" : "Fallback " + uiIndex;
+            uiIndex++;
 
             Map<String, Object> providerInfo = new LinkedHashMap<>();
             providerInfo.put("index", i);

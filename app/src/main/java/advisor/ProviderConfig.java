@@ -22,7 +22,7 @@ public record ProviderConfig(
 
     private static final ObjectMapper YAML = new ObjectMapper(new YAMLFactory());
 
-    public record Provider(String name, String endpoint, String apiKey, String model, boolean enabled) {
+    public record Provider(String name, String endpoint, String apiKey, String model, boolean enabled, boolean showInUi) {
     }
 
     public static ProviderConfig load(Path appDir, Map<String, String> environment) {
@@ -69,7 +69,8 @@ public record ProviderConfig(
                 endpoint,
                 apiKey,
                 node.path("model").asText(),
-                node.path("enabled").asBoolean(true)
+                node.path("enabled").asBoolean(true),
+                node.path("show-in-ui").asBoolean(true)
         );
     }
 

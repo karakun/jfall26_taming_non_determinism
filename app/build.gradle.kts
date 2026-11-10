@@ -46,6 +46,9 @@ tasks.test {
     useJUnitPlatform()
     workingDir = projectDir
 
+    // Configure SLF4J simple logger to use stdout instead of stderr
+    systemProperty("org.slf4j.simpleLogger.logFile", "System.out")
+
     // Show test output for Tiberius scans
     testLogging {
         events("passed", "skipped", "failed")

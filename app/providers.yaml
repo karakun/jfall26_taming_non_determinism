@@ -2,17 +2,17 @@
 format: providers/1
 
 providers:
-  # Primary: Mistral model via LiteLLM gateway
+  # Primary: Mistral model via Infomaniak API
   primary:
-    name: mistral-litellm
+    name: mistral-small
     endpoint: ENV
     api-key: ENV
     model: mistralai/Mistral-Small-4-119B-2603
 
   # Fallbacks: Tried in order when primary fails
   fallback:
-    # Fallback 1: Ministral 3B via LiteLLM gateway
-    - name: ministral-3b-litellm
+    # Fallback 1: Ministral 3B via Infomaniak API
+    - name: ministral-3b
       endpoint: ENV
       api-key: ENV
       model: mistralai/Ministral-3-14B-Instruct-2512
@@ -24,6 +24,7 @@ providers:
       api-key: optional
       model: llama3.2:1b
       enabled: true
+      show-in-ui: true  # Set to true if local Ollama is installed
 
 # When all providers fail, this message is returned
 fallback-message: "All LLM providers are currently unavailable. Please try again later."

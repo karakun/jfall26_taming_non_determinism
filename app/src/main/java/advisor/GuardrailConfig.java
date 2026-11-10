@@ -25,6 +25,11 @@ public record GuardrailConfig(
     };
 
     public static GuardrailConfig load(Path guardrailDir, Path appDir) {
+        // Model comes from Settings (ENV), so we pass null here - it will be set by the caller
+        return load(guardrailDir, appDir, null);
+    }
+
+    public static GuardrailConfig load(Path guardrailDir, Path appDir, String model) {
         Path servicesFile = guardrailDir.resolve(SERVICES_FILE);
         JsonNode configuration = read(servicesFile, appDir).path("services").path(SERVICE).path("configuration");
 
@@ -34,9 +39,12 @@ public record GuardrailConfig(
                 ? readText(guardrailDir.resolve(prompt.get("file").asText()), appDir)
                 : prompt.asText();
 
+        // Model comes from Settings (ENV) if provided, otherwise fall back to YAML config
+        String effectiveModel = model != null ? model : configuration.path("model").asText();
+
         return new GuardrailConfig(
                 systemPrompt,
-                required(configuration, "model", servicesFile, appDir).asText(),
+                effectiveModel,
                 required(configuration, "temperature", servicesFile, appDir).asDouble(),
                 required(configuration, "max-tokens", servicesFile, appDir).asInt(),
                 YAML.convertValue(required(configuration, "response-schema", servicesFile, appDir), SCHEMA_TYPE));

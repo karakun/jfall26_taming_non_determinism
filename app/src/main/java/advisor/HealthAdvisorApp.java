@@ -121,15 +121,18 @@ public class HealthAdvisorApp {
 
         // Checked in this order, so the first thing to fix is the first thing reported.
         Path appDir = Path.of("").toAbsolutePath();
-        // Guardrail config is in the exercises/part1 folder (relative to main app location)
-        GuardrailConfig guardrail = GuardrailConfig.load(appDir.resolve("../exercises/part1/guardrail").normalize(), appDir);
-        AdvisorConfig advisorConfig = AdvisorConfig.load(appDir, guardrail.model());
         Settings settings = Settings.load(appDir);
 
-        // Part 2: Load provider configuration and create fallback gateway
-        // Merge .env file with system environment (system env takes precedence)
+        // Part 2: Load provider configuration - model comes from providers.yaml
         Map<String, String> environment = mergedEnvironment(appDir);
         ProviderConfig providerConfig = ProviderConfig.load(appDir, environment);
+        String primaryModel = providerConfig.primary().model();
+
+        // Guardrail config is in the exercises/part1 folder (relative to main app location)
+        GuardrailConfig guardrail = GuardrailConfig.load(appDir.resolve("../exercises/part1/guardrail").normalize(), appDir, primaryModel);
+        AdvisorConfig advisorConfig = AdvisorConfig.load(appDir, primaryModel);
+
+        // Create fallback gateway
         fallbackGateway = new FallbackGateway(providerConfig);
 
         // Set system prompts for fallback behavior and UI display
@@ -138,7 +141,7 @@ public class HealthAdvisorApp {
 
         // Set guardrail (LLM2) config for health checks - uses same endpoint as primary
         fallbackGateway.setGuardrailConfig(
-                guardrail.model(),
+                primaryModel,
                 providerConfig.primary().endpoint(),
                 providerConfig.primary().apiKey()
         );
@@ -154,7 +157,7 @@ public class HealthAdvisorApp {
         // Part 4: Initialize Security Scanner and Bias Detection
         appPort = port;
         HealthAdvisorApp.appDir = appDir;
-        llmModel = guardrail.model();  // Use same model for LLM-as-judge
+        llmModel = primaryModel;  // Use model from providers.yaml for LLM-as-judge
         securityScanner = new HealthAdvisorSecurityScanner("http://localhost:" + port, wal, appDir, llmModel);
         guardrailScanner = new GuardrailSecurityScanner("http://localhost:" + port, wal, appDir, llmModel);
         e2eScanner = new EndToEndSecurityScanner("http://localhost:" + port, wal, appDir, llmModel);
@@ -162,7 +165,7 @@ public class HealthAdvisorApp {
 
         HttpServer server = bind(port, share);
         server.setExecutor(Executors.newVirtualThreadPerTaskExecutor());
-        String page = page(advisorConfig.model(), guardrail.model());
+        String page = page(advisorConfig.model(), primaryModel);
         server.createContext("/", exchange -> page(exchange, page));
         server.createContext("/api/advise", HealthAdvisorApp::handleAdvise);
         server.createContext("/api/check", HealthAdvisorApp::handleCheck);
