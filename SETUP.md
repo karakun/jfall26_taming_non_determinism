@@ -70,6 +70,57 @@ Supported endpoints include:
 
 To use a different model, update `models.primary.model` in `app/providers.yaml`.
 
+### Option: Local Ollama (offline, no API key needed)
+
+[Ollama](https://ollama.com) lets you run LLMs locally on your machine. This works completely offline and requires no API key.
+
+**1. Install Ollama:**
+
+| System | Installation |
+|--------|--------------|
+| macOS | `brew install ollama` or download from [ollama.com](https://ollama.com) |
+| Windows | Download installer from [ollama.com](https://ollama.com) |
+| Linux | `curl -fsSL https://ollama.com/install.sh | sh` |
+
+**2. Download a model:**
+
+```shell
+ollama pull llama3.2:1b
+```
+
+**3. Start Ollama:**
+
+```shell
+ollama serve
+```
+
+**4. Check if Ollama is running:**
+
+```shell
+curl http://localhost:11434/api/tags
+```
+
+If Ollama is running, this returns a JSON list of installed models.
+
+**5. Enable Ollama as fallback:**
+
+In `app/providers.yaml`, configure the `llama3.2-local` fallback:
+
+```yaml
+models:
+  fallback:
+    - name: llama3.2-local
+      model: llama3.2:1b
+      endpoint: http://localhost:11434/v1/chat/completions
+      enabled: true       # Enable this fallback
+      show-in-ui: true    # Show in the UI
+```
+
+- `enabled: true` - activates this fallback in the fallback chain
+- `show-in-ui: true` - displays this fallback in the UI dropdown
+
+When the primary LLM fails, the app will automatically fall back to your local Ollama.
+
 ### Fallback: Workshop API key
 
 If you don't have access to your own LLM provider, you can use the shared workshop API key handed out at the workshop.
