@@ -25,8 +25,6 @@ Saying "we use GPT-6, it's secure" isn't sufficient for healthcare compliance. Y
 **5. Defense in depth.**
 Even if 99% of attacks fail, you want to know which 1% succeed. That 1% might be the exact attack vector relevant to your domain.
 
-**The Tiberius library:** It provides a structured, reproducible way to measure what your specific application allows - not what the base model allows.
-
 ---
 
 ## Tiberius Library
