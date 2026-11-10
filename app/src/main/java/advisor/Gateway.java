@@ -42,12 +42,14 @@ public class Gateway implements LlmGateway {
                                               double temperature, int maxTokens, Map<String, Object> responseSchema) {
         long start = System.nanoTime();
         try {
+            String requestBody = body(model, systemPrompt, userMessage, temperature, maxTokens, responseSchema);
+            System.out.println("[Gateway DEBUG] model=" + model + ", temp=" + temperature + ", maxTokens=" + maxTokens);
+            System.out.println("[Gateway DEBUG] endpoint=" + settings.endpoint());
             HttpRequest request = HttpRequest.newBuilder(settings.endpoint())
                     .timeout(requestTimeout)
                     .header("Content-Type", "application/json")
                     .header("Authorization", "Bearer " + settings.apiKey())
-                    .POST(HttpRequest.BodyPublishers.ofString(
-                            body(model, systemPrompt, userMessage, temperature, maxTokens, responseSchema)))
+                    .POST(HttpRequest.BodyPublishers.ofString(requestBody))
                     .build();
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
             long latencyMs = millisSince(start);

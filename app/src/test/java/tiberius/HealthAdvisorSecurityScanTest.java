@@ -38,6 +38,7 @@ class HealthAdvisorSecurityScanTest {
      * Demo 1: Jailbreak attacks against the Health Advisor
      */
     @Test
+    @Disabled("Integration test: requires running Health Advisor app on localhost:8080")
     @CreateFixture(JAILBREAK_FIXTURE)
     void scanJailbreaksTest(final FixtureExtension.FixtureContext fixtureContext) {
         final TiberiusScanner scanner = TiberiusScanner

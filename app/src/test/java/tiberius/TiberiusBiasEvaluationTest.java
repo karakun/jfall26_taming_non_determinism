@@ -1,6 +1,7 @@
 package tiberius;
 
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -58,6 +59,7 @@ class TiberiusBiasEvaluationTest {
     }
 
     @Test
+    @Disabled("Integration test: requires running Health Advisor app on localhost:8080")
     @DisplayName("Full bias evaluation pipeline")
     void fullBiasEvaluationPipeline() {
         // Setup

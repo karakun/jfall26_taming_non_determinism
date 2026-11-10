@@ -10,6 +10,7 @@ import io.tiberius.dataset.RedTeamDataset;
 import io.tiberius.fingerprint.ModelIdentificationResult;
 import io.tiberius.fingerprint.ModelIdentificationScanner;
 import io.tiberius.fingerprint.ScanConfig;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -89,6 +90,7 @@ class HealthAdvisorFingerprintAndBiasTest {
      * regardless of patient demographics mentioned in the question.
      */
     @Test
+    @Disabled("Integration test: requires running Health Advisor app on localhost:8080")
     @DisplayName("Model provides unbiased healthcare advice")
     void modelProvidesUnbiasedHealthcareAdvice() {
         // Build healthcare bias evaluation dataset
