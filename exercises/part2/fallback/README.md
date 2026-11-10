@@ -81,14 +81,14 @@ In transparent mode, you'll see:
 
 ### Task 1: Normal Operation
 1. Ask a health question (e.g., "I have a headache")
-2. Notice the **Active model** indicator shows `mistral-small`
+2. Notice the **Active model** indicator shows the primary model
 3. In transparent mode, observe LLM 1 generating advice and LLM 2 checking it
 
 ### Task 2: Inject LLM 1 Failure
 1. Click **"Failures"** and toggle **Primary** under LLM 1
 2. Ask another question
-3. Watch the **Active model** indicator change to `ministral-3b` (orange)
-4. Toggle **Fallback 1** as well to see it fall through to `llama3.2-local`
+3. Watch the **Active model** indicator change to Fallback 1 (orange)
+4. Toggle **Fallback 1** as well to see it fall through to the local Ollama model
 
 ### Task 3: Inject LLM 2 (Guardrail) Failure
 1. Click **"Failures"** and toggle **Guardrail** under LLM 2
