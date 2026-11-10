@@ -21,7 +21,12 @@ LLM integrations and ML-powered services are being adopted at scale in productio
 ## Prerequisites
 
 - **Java 21+** (via SDKMAN or direct install)
-- **API Key** for the LLM gateway (provided at the workshop)
+- **LLM API Access** - one of:
+  - Workshop API key (provided at the workshop)
+  - Your own OpenAI API key
+  - Azure OpenAI endpoint
+  - Local Ollama installation
+  - Any OpenAI-compatible API
 - **Browser** for the Health Advisor UI
 
 ---
@@ -32,9 +37,9 @@ LLM integrations and ML-powered services are being adopted at scale in productio
 # Clone and enter the project
 cd jfall2026_taming_non_determinism/app
 
-# Configure API key
+# Configure your LLM endpoint
 cp .env.example .env
-# Edit .env and add your API key
+# Edit .env: set MAVAI_LLM_ENDPOINT and MAVAI_LLM_API_KEY
 
 # Start the Health Advisor
 ./gradlew run
@@ -42,6 +47,22 @@ cp .env.example .env
 # Open in browser
 open http://localhost:8080
 ```
+
+### Using Your Own LLM
+
+You can use any OpenAI-compatible endpoint. Edit `app/.env`:
+
+```bash
+# OpenAI
+MAVAI_LLM_ENDPOINT=https://api.openai.com/v1/chat/completions
+MAVAI_LLM_API_KEY=sk-...
+
+# Local Ollama (no API key needed)
+MAVAI_LLM_ENDPOINT=http://localhost:11434/v1/chat/completions
+MAVAI_LLM_API_KEY=optional
+```
+
+To change the model, edit `model` in `app/providers.yaml`.
 
 ---
 
