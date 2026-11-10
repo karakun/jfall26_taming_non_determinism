@@ -83,7 +83,7 @@ public class GatewayGenerator implements Generator {
                 model,
                 systemPrompt,
                 prompt,
-                0.0,  // Low temperature for consistent judging
+                0.1,  // Low temperature for consistent judging (some APIs reject 0.0)
                 1000, // Max tokens for verdict + explanation
                 null  // No response schema
         );

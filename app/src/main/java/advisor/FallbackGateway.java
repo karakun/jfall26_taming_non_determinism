@@ -52,8 +52,7 @@ public class FallbackGateway implements LlmGateway {
     private static final long HEALTH_CHECK_INTERVAL_SECONDS = 120; // 2 minutes
     private final Map<Integer, HealthStatus> providerHealthStatus = new ConcurrentHashMap<>();
 
-    // Guardrail (LLM2) health check state - uses index -1 in providerHealthStatus
-    private static final int GUARDRAIL_INDEX = -1;
+    // Guardrail (LLM2) configuration - health status uses primary provider's status
     private volatile ProviderConfig.Provider guardrailProvider = null;
     private final ScheduledExecutorService healthCheckScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
         Thread t = new Thread(r, "health-check-scheduler");
@@ -106,17 +105,17 @@ public class FallbackGateway implements LlmGateway {
         this.primarySystemPrompt.set(prompt);
     }
 
-    /** Sets the guardrail (LLM2) configuration for health checks */
+    /** Sets the guardrail (LLM2) configuration - health uses primary provider's status */
     public void setGuardrailConfig(String model, String endpoint, String apiKey) {
         this.guardrailProvider = new ProviderConfig.Provider("guardrail", endpoint, apiKey, model, true);
-        providerHealthStatus.put(GUARDRAIL_INDEX, HealthStatus.unknown());
-        // Trigger immediate health check for the guardrail
-        checkProviderHealth(GUARDRAIL_INDEX, guardrailProvider);
+        // No separate health check needed - guardrail uses same endpoint as primary
     }
 
-    /** Returns the guardrail health status */
+    /** Returns the guardrail health status - uses primary provider's status since they share the same endpoint */
     public HealthStatus getGuardrailHealth() {
-        return providerHealthStatus.getOrDefault(GUARDRAIL_INDEX, HealthStatus.unknown());
+        // Guardrail uses the same endpoint as primary, so use primary's health status
+        // This avoids duplicate health checks and rate limiting issues
+        return providerHealthStatus.getOrDefault(0, HealthStatus.unknown());
     }
 
     /** Gets the currently active system prompt (the one used in the last request) */
@@ -144,16 +143,13 @@ public class FallbackGateway implements LlmGateway {
         System.out.println("Health check scheduler started (interval: " + HEALTH_CHECK_INTERVAL_SECONDS + "s)");
     }
 
-    /** Checks health of all providers and the guardrail */
+    /** Checks health of all providers */
     public void checkAllProviders() {
         List<ProviderConfig.Provider> providers = config.allProviders();
         for (int i = 0; i < providers.size(); i++) {
             checkProviderHealth(i, providers.get(i));
         }
-        // Also check guardrail health using the same method
-        if (guardrailProvider != null) {
-            checkProviderHealth(GUARDRAIL_INDEX, guardrailProvider);
-        }
+        // Guardrail uses primary's health status - no separate check needed
     }
 
     /** Checks health of a single provider */
@@ -193,7 +189,7 @@ public class FallbackGateway implements LlmGateway {
             body.put("model", model);
             body.put("messages", List.of(Map.of("role", "user", "content", "ping")));
             body.put("max_tokens", 1);
-            body.put("temperature", 0);
+            body.put("temperature", 0.1);  // Some APIs reject temperature=0
             return JSON.writeValueAsString(body);
         } catch (IOException e) {
             return "{}";

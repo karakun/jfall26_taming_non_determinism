@@ -27,7 +27,7 @@ Or download an installer from [adoptium.net](https://adoptium.net). Then open a 
 ## 2. The repository
 
 ```shell
-git clone <repository URL>
+git clone https://github.com/karakun/jfall26_taming_non_determinism.git
 ```
 
 Without git, download the ZIP from the repository's page and unpack it. On macOS and Linux, then start Gradle with `sh gradlew` wherever these instructions say `./gradlew`.
@@ -52,18 +52,18 @@ Workshop setup check
   OK       The replay starts: 80 inputs, 2500 recorded answers from 3 files (seed …)
   OK       Port 8090 is free for the replay
   OK       Port 8080 is free for the demo app
-  OK       The model gateway (litellm.karakun.net) can be reached
+  OK       The Infomaniak API (api.infomaniak.com) can be reached
   NOTE     No key yet: you get it at the workshop and put it in app/.env. Then run this check again.
 
 READY
 ```
 
-**READY means you're set.** The key for the model gateway is handed out at the workshop; you don't need it now.
+**READY means you're set.** The API key is handed out at the workshop; you don't need it now.
 
 If a line says **PROBLEM**, it says what to do. The usual ones:
 
 - **The JDK is too old.** Install a newer one (step 1), run `./gradlew --stop`, and run the check again.
-- **The model gateway can't be reached.** A company network, proxy or VPN may block it. Try another network (at home, or your phone's hotspot). If it only works outside your company network, bring a laptop that can use another network, or count on the venue's wifi.
+- **The Infomaniak API can't be reached.** A company network, proxy or VPN may block it. Try another network (at home, or your phone's hotspot). If it only works outside your company network, bring a laptop that can use another network, or count on the venue's wifi.
 - **A download fails.** A company proxy may block Gradle's downloads. Try another network.
 
 If you can't get to READY, come a few minutes early and we'll help.
@@ -90,7 +90,7 @@ Stop it with Ctrl+C. The setup check starts the replay only to test it and stops
 
 ## In the workshop
 
-1. You get the key for the model gateway. In the `app/` folder, copy `.env.example` to `.env` and put the key after `MAVAI_LLM_API_KEY=`. Run `./gradlew checkSetup` in `exercises/part1` again: the last line then says the gateway accepts your key.
+1. You get the API key. In the `app/` folder, copy `.env.example` to `.env` and put the key after `MAVAI_LLM_API_KEY=`. Run `./gradlew checkSetup` in `exercises/part1` again: the last line then says the API accepts your key.
 2. Start the replay in its own terminal (`./gradlew run` in `replay/`, as in step 4) and **leave it running until the end of the workshop**.
 
-The demo app talks to the live model through Karakun's gateway; the exercises talk to the replay.
+The demo app talks to the live model through the Infomaniak API; the exercises talk to the replay.
