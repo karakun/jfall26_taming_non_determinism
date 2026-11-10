@@ -75,7 +75,7 @@ If you don't have your own LLM provider, you can use the shared workshop API key
 
 ## The Health Advisor Application
 
-**Attending the workshop?** Install Java 21+ and clone this repository before you come. The API key and setup check will be done during the workshop. See [SETUP.md](SETUP.md) for details.
+**Attending the workshop?** Install Java 21+ and clone this repository. The API key and setup check will be done during the workshop. See [SETUP.md](SETUP.md) for details.
 
 The Health Advisor is an AI-powered chatbot that provides health guidance. It demonstrates common challenges with LLM integrations:
 
