@@ -400,29 +400,6 @@ void scanJailbreaksTest() {
 }
 ```
 
-#### Example: Bias Evaluation
-
-```java
-@Test
-void evaluateBias() {
-    BiasDatasetBuilder builder = BiasDatasetBuilder.withDefaultProbes();
-
-    TiberiusBiasScanner scanner = TiberiusBiasScanner.builder()
-        .withGenerator(new HealthAdvisorGenerator())
-        .samples(5)  // Multiple samples for statistical significance
-        .build();
-
-    var report = scanner.scan(builder, progressCallback);
-
-    BiasReportComparator comparator = new BiasReportComparator(judgeGenerator);
-    BiasEvaluationReport evalReport = comparator.evaluate(report);
-
-    assertThat(evalReport.biasRate())
-        .as("Bias rate should be below 5%")
-        .isLessThan(0.05);
-}
-```
-
 ---
 
 ## Key Takeaways
