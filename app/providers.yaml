@@ -1,30 +1,32 @@
-# The app tries providers in order: primary first, then fallbacks.
-format: providers/1
+# Provider and model configuration for the Health Advisor app.
+# The app tries models in order: primary first, then fallbacks.
+format: providers/2
 
-providers:
-  # Primary: Mistral model via Infomaniak API
+# Default provider configuration (used by models that don't specify their own endpoint)
+provider:
+  endpoint: ENV                    # Reads from MAVAI_LLM_ENDPOINT in .env or environment
+  api-key: ENV                     # Reads from MAVAI_LLM_API_KEY in .env or environment
+
+# Model selection
+models:
+  # Primary model
   primary:
     name: mistral-small
-    endpoint: ENV
-    api-key: ENV
     model: mistralai/Mistral-Small-4-119B-2603
 
-  # Fallbacks: Tried in order when primary fails
+  # Fallback models (tried in order when primary fails)
   fallback:
-    # Fallback 1: Ministral 3B via Infomaniak API
     - name: ministral-3b
-      endpoint: ENV
-      api-key: ENV
       model: mistralai/Ministral-3-14B-Instruct-2512
       enabled: true
 
-    # Fallback 2: Local Ollama running on the machine
+    # Local Ollama (uses its own endpoint, not the default provider)
     - name: llama3.2-local
+      model: llama3.2:1b
       endpoint: http://localhost:11434/v1/chat/completions
       api-key: optional
-      model: llama3.2:1b
       enabled: true
-      show-in-ui: true  # Set to true if local Ollama is installed
+      show-in-ui: true            # Set to true if local Ollama is installed
 
-# When all providers fail, this message is returned
+# Message shown when all models fail
 fallback-message: "All LLM providers are currently unavailable. Please try again later."

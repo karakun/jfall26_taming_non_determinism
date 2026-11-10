@@ -117,7 +117,7 @@ Supported endpoints include:
 - **Local Ollama**: `http://localhost:11434/v1/chat/completions` (no API key required)
 - **Any OpenAI-compatible API** (e.g., Together.ai, Anyscale, local LLM servers)
 
-To use a different model, update the `model` field in `app/providers.yaml`.
+To use a different model, update `models.primary.model` in `app/providers.yaml`.
 
 ### Fallback: Workshop API key
 

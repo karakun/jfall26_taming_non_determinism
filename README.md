@@ -65,7 +65,7 @@ MAVAI_LLM_ENDPOINT=http://localhost:11434/v1/chat/completions
 MAVAI_LLM_API_KEY=optional
 ```
 
-To change the model, edit `model` in `app/providers.yaml`.
+To change the model, edit `models.primary.model` in `app/providers.yaml`.
 
 #### Fallback: Workshop API Key
 

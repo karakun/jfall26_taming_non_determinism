@@ -13,7 +13,8 @@ import java.util.Map;
 
 /**
  * Loads provider configuration from providers.yaml.
- * Supports a primary provider and a chain of fallback providers.
+ * Supports a default provider with multiple models (primary + fallbacks).
+ * Models can optionally override the default endpoint/api-key.
  */
 public record ProviderConfig(
         Provider primary,
@@ -33,32 +34,98 @@ public record ProviderConfig(
 
         try {
             JsonNode root = YAML.readTree(Files.readString(configPath));
-            JsonNode providersNode = root.path("providers");
 
-            Provider primary = parseProvider(providersNode.path("primary"), environment);
+            // Check format version for backward compatibility
+            String format = root.path("format").asText("providers/1");
 
-            List<Provider> fallback = new ArrayList<>();
-            JsonNode fallbackNode = providersNode.path("fallback");
-            if (fallbackNode.isArray()) {
-                for (JsonNode node : fallbackNode) {
-                    Provider p = parseProvider(node, environment);
-                    if (p != null && p.enabled()) {
-                        fallback.add(p);
-                    }
-                }
+            if (format.equals("providers/2")) {
+                return parseV2(root, environment);
+            } else {
+                return parseV1(root, environment);
             }
-
-            String fallbackMessage = root.path("fallback-message").asText(
-                    "All LLM providers are currently unavailable.");
-
-            return new ProviderConfig(primary, fallback, fallbackMessage);
 
         } catch (IOException e) {
             throw new StartupException("Can't read providers.yaml: " + e.getMessage());
         }
     }
 
-    private static Provider parseProvider(JsonNode node, Map<String, String> environment) {
+    /** Parse new format (providers/2) with default provider and model selection */
+    private static ProviderConfig parseV2(JsonNode root, Map<String, String> environment) {
+        // Read default provider configuration
+        JsonNode providerNode = root.path("provider");
+        String defaultEndpoint = resolveEnv(providerNode.path("endpoint").asText("ENV"), "MAVAI_LLM_ENDPOINT", environment);
+        String defaultApiKey = resolveEnv(providerNode.path("api-key").asText("ENV"), "MAVAI_LLM_API_KEY", environment);
+
+        JsonNode modelsNode = root.path("models");
+
+        // Parse primary model
+        Provider primary = parseModel(modelsNode.path("primary"), defaultEndpoint, defaultApiKey, environment);
+
+        // Parse fallback models
+        List<Provider> fallback = new ArrayList<>();
+        JsonNode fallbackNode = modelsNode.path("fallback");
+        if (fallbackNode.isArray()) {
+            for (JsonNode node : fallbackNode) {
+                Provider p = parseModel(node, defaultEndpoint, defaultApiKey, environment);
+                if (p != null && p.enabled()) {
+                    fallback.add(p);
+                }
+            }
+        }
+
+        String fallbackMessage = root.path("fallback-message").asText(
+                "All LLM providers are currently unavailable.");
+
+        return new ProviderConfig(primary, fallback, fallbackMessage);
+    }
+
+    /** Parse model node, using default endpoint/apiKey unless overridden */
+    private static Provider parseModel(JsonNode node, String defaultEndpoint, String defaultApiKey, Map<String, String> environment) {
+        if (node.isMissingNode()) return null;
+
+        // Use model-specific endpoint/apiKey if provided, otherwise use defaults
+        String endpoint = node.has("endpoint")
+                ? resolveEnv(node.path("endpoint").asText(), "MAVAI_LLM_ENDPOINT", environment)
+                : defaultEndpoint;
+        String apiKey = node.has("api-key")
+                ? resolveEnv(node.path("api-key").asText(null), "MAVAI_LLM_API_KEY", environment)
+                : defaultApiKey;
+
+        return new Provider(
+                node.path("name").asText("unknown"),
+                endpoint,
+                apiKey,
+                node.path("model").asText(),
+                node.path("enabled").asBoolean(true),
+                node.path("show-in-ui").asBoolean(true)
+        );
+    }
+
+    /** Parse old format (providers/1) for backward compatibility */
+    private static ProviderConfig parseV1(JsonNode root, Map<String, String> environment) {
+        JsonNode providersNode = root.path("providers");
+
+        Provider primary = parseProviderV1(providersNode.path("primary"), environment);
+
+        List<Provider> fallback = new ArrayList<>();
+        JsonNode fallbackNode = providersNode.path("fallback");
+        if (fallbackNode.isArray()) {
+            for (JsonNode node : fallbackNode) {
+                Provider p = parseProviderV1(node, environment);
+                if (p != null && p.enabled()) {
+                    fallback.add(p);
+                }
+            }
+        }
+
+        String fallbackMessage = root.path("fallback-message").asText(
+                "All LLM providers are currently unavailable.");
+
+        return new ProviderConfig(primary, fallback, fallbackMessage);
+    }
+
+    /** Parse provider node in v1 format */
+    private static Provider parseProviderV1(JsonNode node, Map<String, String> environment) {
         if (node.isMissingNode()) return null;
 
         String endpoint = resolveEnv(node.path("endpoint").asText(), "MAVAI_LLM_ENDPOINT", environment);

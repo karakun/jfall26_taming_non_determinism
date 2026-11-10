@@ -25,7 +25,35 @@ If you don't have your own LLM provider, you can use the shared workshop API key
 
 The app always talks to the real model, so it doesn't use the exercises' `.env`. You can also set `MAVAI_LLM_ENDPOINT` and `MAVAI_LLM_API_KEY` as environment variables, which take precedence over the file.
 
-To use a different model, edit `model` in `providers.yaml`.
+### Model Configuration (providers.yaml)
+
+The `providers.yaml` file configures the LLM provider and models:
+
+```yaml
+# Default provider (endpoint and API key)
+provider:
+  endpoint: ENV                    # Uses MAVAI_LLM_ENDPOINT from .env
+  api-key: ENV                     # Uses MAVAI_LLM_API_KEY from .env
+
+# Model selection
+models:
+  primary:
+    name: mistral-small
+    model: mistralai/Mistral-Small-4-119B-2603
+
+  fallback:
+    - name: ministral-3b
+      model: mistralai/Ministral-3-14B-Instruct-2512
+
+    # Models can override the default endpoint (e.g., local Ollama)
+    - name: llama3.2-local
+      model: llama3.2:1b
+      endpoint: http://localhost:11434/v1/chat/completions
+      api-key: optional
+      show-in-ui: false            # Set to true if Ollama is installed
+```
+
+To use a different model, edit the `model` field under `models.primary`.
 
 ## Start the app
 
