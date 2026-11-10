@@ -64,6 +64,15 @@ class RecordingsTest {
     }
 
     @Test
+    void answersAModelAliasFromTheRecordedName() {
+        ObjectNode alias = JSON.createObjectNode().put("model", "mistralai/Mistral-Small-4-119B-2603");
+        ObjectNode recorded = JSON.createObjectNode().put("model", "karakun-Mistral-Small-4-119B-2603");
+
+        assertThat(Recordings.Settings.of(alias)).isEqualTo(Recordings.Settings.of(recorded));
+        assertThat(Recordings.Settings.of(alias).model().asText()).isEqualTo("karakun-Mistral-Small-4-119B-2603");
+    }
+
+    @Test
     void needsRecordings() {
         assertThatThrownBy(() -> Recordings.load(FIXTURES.resolve("empty")))
                 .hasMessageStartingWith("No recorded answers in ");

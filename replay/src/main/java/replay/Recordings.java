@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
@@ -50,13 +51,27 @@ public final class Recordings {
         }
     }
 
+    /**
+     * Other names for a recorded model: a request for the alias is answered from the recordings of the recorded
+     * name. The recordings were made through Karakun's gateway, which names Infomaniak's Mistral Small 4
+     * {@code karakun-Mistral-Small-4-119B-2603}; since 9 Nov 2026 the demo app calls Infomaniak directly, which
+     * names it {@code mistralai/Mistral-Small-4-119B-2603}, and the exercises share the app's service file.
+     */
+    static final Map<String, String> MODEL_ALIASES =
+            Map.of("mistralai/Mistral-Small-4-119B-2603", "karakun-Mistral-Small-4-119B-2603");
+
     /** The settings a request must share with the recording to be answered from it. */
     public record Settings(JsonNode model, JsonNode temperature, JsonNode maxTokens, JsonNode topP,
                            JsonNode responseFormat) {
 
         static Settings of(JsonNode request) {
-            return new Settings(request.path("model"), request.path("temperature"), request.path("max_tokens"),
-                    request.path("top_p"), request.path("response_format"));
+            return new Settings(recordedName(request.path("model")), request.path("temperature"),
+                    request.path("max_tokens"), request.path("top_p"), request.path("response_format"));
+        }
+
+        private static JsonNode recordedName(JsonNode model) {
+            String recorded = model.isTextual() ? MODEL_ALIASES.get(model.asText()) : null;
+            return recorded == null ? model : TextNode.valueOf(recorded);
         }
 
         /** The first setting that differs from the recorded one; absent settings count as "not set". */
