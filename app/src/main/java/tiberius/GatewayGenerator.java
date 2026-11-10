@@ -41,6 +41,7 @@ public class GatewayGenerator implements Generator {
      */
     public GatewayGenerator(Path appDir, String model, String systemPrompt) {
         Settings settings = Settings.load(appDir);
+        System.out.println("[LLM-Judge] Initialized with endpoint: " + settings.endpoint());
         this.gateway = new Gateway(settings);
         this.model = model;
         this.systemPrompt = systemPrompt;
@@ -79,6 +80,7 @@ public class GatewayGenerator implements Generator {
 
     @Override
     public GeneratorResponse generate(String prompt) {
+        System.out.println("[LLM-Judge] Request: model=" + model + ", temp=0.1, maxTokens=1000");
         LlmGateway.GatewayResult result = gateway.complete(
                 model,
                 systemPrompt,
@@ -87,6 +89,12 @@ public class GatewayGenerator implements Generator {
                 1000, // Max tokens for verdict + explanation
                 null  // No response schema
         );
+
+        if (result.failed()) {
+            System.out.println("[LLM-Judge] FAILED: " + result.error());
+        } else {
+            System.out.println("[LLM-Judge] SUCCESS");
+        }
 
         if (result.failed()) {
             return GeneratorResponse.failure(result.error());
