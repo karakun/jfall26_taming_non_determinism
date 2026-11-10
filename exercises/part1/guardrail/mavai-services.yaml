@@ -6,7 +6,7 @@ services:
       guardrail: llm                    # llm: a language model judges the advice; keyword: matching harmful phrases
       # No provider: any server that speaks the OpenAI chat-completions protocol.
       # Which one is set by MAVAI_LLM_ENDPOINT in .env.
-      model: karakun-Mistral-Small-4-119B-2603
+      model: mistralai/Mistral-Small-4-119B-2603
       system-prompt: {file: guardrail-system-prompt.txt}
       temperature: 0.7                  # how much randomness goes into each answer
       max-tokens: 120
@@ -19,5 +19,5 @@ services:
           reason: {type: string}
     # Other configurations to explore next to the one above: uncomment `explorations:` and the line below it.
     # Each exploration changes one setting, so the report can show what caused a difference.
-    # explorations:
-    #   - {guardrail: keyword}            # the guardrail falls back to keyword matching
+      explorations:
+        - {guardrail: keyword}            # the guardrail falls back to keyword matching
