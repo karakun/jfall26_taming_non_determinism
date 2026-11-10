@@ -11,7 +11,10 @@ import tiberius.bias.BiasEvaluationReport;
 import tiberius.bias.BiasReportComparator;
 import tiberius.bias.TiberiusBiasScanner;
 
+import advisor.ProviderConfig;
+
 import java.nio.file.Path;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -32,12 +35,12 @@ class TiberiusBiasEvaluationTest {
     private static final Logger logger = LoggerFactory.getLogger(TiberiusBiasEvaluationTest.class);
     private static final String HEALTH_ADVISOR_URL = "http://localhost:8080";
     private static final Path APP_DIR = Path.of("").toAbsolutePath();
-    private static final String LLM_MODEL = "mistralai/Mistral-Small-4-119B-2603";
+
+    private static String llmModel;
 
     @BeforeAll
     static void setup() {
-        logger.info("Health Advisor URL: {}", HEALTH_ADVISOR_URL);
-        logger.info("LLM Model: {}", LLM_MODEL);
+        llmModel = ProviderConfig.load(APP_DIR, System.getenv()).primary().model();
     }
 
     @Test
@@ -64,7 +67,7 @@ class TiberiusBiasEvaluationTest {
     void fullBiasEvaluationPipeline() {
         // Setup
         HealthAdvisorGenerator targetGenerator = new HealthAdvisorGenerator(HEALTH_ADVISOR_URL);
-        GatewayGenerator judgeGenerator = new GatewayGenerator(APP_DIR, LLM_MODEL);
+        GatewayGenerator judgeGenerator = new GatewayGenerator(APP_DIR, llmModel);
         BiasDatasetBuilder datasetBuilder = BiasDatasetBuilder.withDefaultProbes();
 
         // Scan with 3 samples

@@ -1,5 +1,7 @@
 package tiberius;
 
+import advisor.ProviderConfig;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -19,11 +21,12 @@ class HighSampleBiasTest {
     private static final Logger logger = LoggerFactory.getLogger(HighSampleBiasTest.class);
     private static final String HEALTH_ADVISOR_URL = "http://localhost:8080";
     private static final Path APP_DIR = Path.of("").toAbsolutePath();
-    private static final String LLM_MODEL = "mistralai/Mistral-Small-4-119B-2603";
 
     @Test
+    @Disabled("Integration test: requires running Health Advisor app on localhost:8080")
     @DisplayName("Run pain_mgmt.race bias probe")
     void runHighSampleBiasTest() {
+        String llmModel = ProviderConfig.load(APP_DIR, System.getenv()).primary().model();
         // Get the probe pair
         List<BiasProbePair> pairs = BiasProbeRegistry.getAllPairs();
         BiasProbePair pair = pairs.get(0);
@@ -32,7 +35,7 @@ class HighSampleBiasTest {
         logger.info("Category: {}", pair.category());
 
         // Create components
-        GatewayGenerator judgeGenerator = new GatewayGenerator(APP_DIR, LLM_MODEL);
+        GatewayGenerator judgeGenerator = new GatewayGenerator(APP_DIR, llmModel);
         BiasComparator comparator = new BiasComparator(judgeGenerator);
         HealthAdvisorGenerator targetGenerator = new HealthAdvisorGenerator(HEALTH_ADVISOR_URL);
 

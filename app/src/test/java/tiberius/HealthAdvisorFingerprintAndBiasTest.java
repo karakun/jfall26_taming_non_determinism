@@ -46,6 +46,7 @@ class HealthAdvisorFingerprintAndBiasTest {
      * which could help attackers craft model-specific attacks.
      */
     @Test
+    @Disabled("Integration test: requires running Health Advisor app on localhost:8080")
     @DisplayName("Production endpoint resists fingerprinting")
     void productionEndpointResistsFingerprinting() {
         final ModelIdentificationResult fingerprint = ModelIdentificationScanner.builder()

@@ -1,5 +1,6 @@
 package tiberius;
 
+import advisor.ProviderConfig;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
@@ -38,23 +39,19 @@ class BiasScanIntegrationTest {
     private static final String HEALTH_ADVISOR_URL = "http://localhost:8080";
     private static final Path APP_DIR = Path.of("").toAbsolutePath();
 
-    // Model from providers.yaml - same as LLM1
-    private static final String LLM_MODEL = "mistralai/Mistral-Small-4-119B-2603";
+    // Model from providers.yaml
+    private static String llmModel;
 
     @BeforeAll
     static void checkPrerequisites() {
-        logger.info("=== PAIRED PROBE BIAS SCAN INTEGRATION TEST (Weg 2) ===");
-        logger.info("App directory: {}", APP_DIR);
-        logger.info("Health Advisor URL: {}", HEALTH_ADVISOR_URL);
-        logger.info("LLM Model for Judge: {}", LLM_MODEL);
-        logger.info("Registered bias probe pairs: {}", BiasProbeRegistry.size());
+        llmModel = ProviderConfig.load(APP_DIR, System.getenv()).primary().model();
     }
 
     @Test
     @DisplayName("GatewayGenerator should connect to the same LLM as the app")
     void gatewayGeneratorConnectsToLlm() {
         // Given: A GatewayGenerator configured with the app's settings
-        GatewayGenerator generator = new GatewayGenerator(APP_DIR, LLM_MODEL);
+        GatewayGenerator generator = new GatewayGenerator(APP_DIR, llmModel);
 
         // When: We generate a simple response
         var response = generator.generate("Say 'hello' and nothing else.");
@@ -76,7 +73,7 @@ class BiasScanIntegrationTest {
     @DisplayName("BiasComparator should detect differential treatment in paired responses")
     void biasComparatorDetectsDifferentialTreatment() {
         // Given: A BiasComparator with GatewayGenerator as judge
-        GatewayGenerator judgeGenerator = new GatewayGenerator(APP_DIR, LLM_MODEL);
+        GatewayGenerator judgeGenerator = new GatewayGenerator(APP_DIR, llmModel);
         BiasComparator comparator = new BiasComparator(judgeGenerator);
 
         // And: A test probe pair with clearly different responses
@@ -121,7 +118,7 @@ class BiasScanIntegrationTest {
     @DisplayName("BiasComparator should recognize fair treatment in similar responses")
     void biasComparatorRecognizesFairTreatment() {
         // Given: A BiasComparator with GatewayGenerator as judge
-        GatewayGenerator judgeGenerator = new GatewayGenerator(APP_DIR, LLM_MODEL);
+        GatewayGenerator judgeGenerator = new GatewayGenerator(APP_DIR, llmModel);
         BiasComparator comparator = new BiasComparator(judgeGenerator);
 
         // And: A test probe pair
@@ -165,7 +162,7 @@ class BiasScanIntegrationTest {
     @DisplayName("PairedBiasScanner should run multi-trial scan with registered probes")
     void pairedBiasScannerWithMultiTrial() {
         // Given: Components for the paired bias scanner
-        GatewayGenerator judgeGenerator = new GatewayGenerator(APP_DIR, LLM_MODEL);
+        GatewayGenerator judgeGenerator = new GatewayGenerator(APP_DIR, llmModel);
         BiasComparator comparator = new BiasComparator(judgeGenerator);
         HealthAdvisorGenerator targetGenerator = new HealthAdvisorGenerator(HEALTH_ADVISOR_URL);
 
@@ -257,7 +254,7 @@ class BiasScanIntegrationTest {
     @DisplayName("Multi-trial scan should provide more robust results than single-trial")
     void multiTrialProvidesRobustness() {
         // Given: Components for scanning
-        GatewayGenerator judgeGenerator = new GatewayGenerator(APP_DIR, LLM_MODEL);
+        GatewayGenerator judgeGenerator = new GatewayGenerator(APP_DIR, llmModel);
         BiasComparator comparator = new BiasComparator(judgeGenerator);
         HealthAdvisorGenerator targetGenerator = new HealthAdvisorGenerator(HEALTH_ADVISOR_URL);
 
