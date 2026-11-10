@@ -71,11 +71,13 @@ Each model family has unique signatures. GPT models respond differently than Cla
 
 ---
 
+<!--
 ## Run the Test
 
 ```bash
 ./gradlew test --tests "tiberius.HealthAdvisorFingerprintAndBiasTest.productionEndpointResistsFingerprinting"
 ```
+-->
 
 ### Code Example
 
