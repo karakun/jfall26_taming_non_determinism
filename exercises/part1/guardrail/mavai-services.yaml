@@ -17,5 +17,5 @@ services:
           reason: {type: string}
     # Other configurations to explore next to the one above: uncomment `explorations:` and the line below it.
     # Each exploration changes one setting, so the report can show what caused a difference.
-      explorations:
-        - {guardrail: keyword}            # the guardrail falls back to keyword matching
+    # explorations:
+    #   - {guardrail: keyword}            # the guardrail falls back to keyword matching
