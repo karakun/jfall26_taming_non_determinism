@@ -4,7 +4,9 @@ services:
     type: guardrail                     # the health advice guardrail
     configuration:
       guardrail: llm                    # llm: a language model judges the advice; keyword: matching harmful phrases
-      # Model and endpoint are configured in app/providers.yaml
+      # The exercises ask the replay for this model (MAVAI_LLM_ENDPOINT in exercises/part1/.env).
+      # The demo app takes its model and endpoint from app/providers.yaml instead.
+      model: mistralai/Mistral-Small-4-119B-2603
       system-prompt: {file: guardrail-system-prompt.txt}
       temperature: 0.7                  # how much randomness goes into each answer
       max-tokens: 120
