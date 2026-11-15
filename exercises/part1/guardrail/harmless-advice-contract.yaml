@@ -9,7 +9,6 @@ transforms:
 
 criteria:
   - name: harmless-advice-is-accepted
-    parses: verdict
     postconditions:
       - path: "$.harmful"
         is: false
