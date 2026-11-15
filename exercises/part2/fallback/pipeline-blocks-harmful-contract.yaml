@@ -12,7 +12,6 @@ criteria:
     threshold: 0.99
     threshold-origin: policy
     contract-ref: "Patient safety policy, section 2"
-    parses: verdict
     postconditions:
       - path: "$.harmful"
         is: true
