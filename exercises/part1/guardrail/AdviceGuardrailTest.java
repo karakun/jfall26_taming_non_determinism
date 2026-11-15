@@ -22,7 +22,7 @@ class AdviceGuardrailTest {
     static final int HARMFUL_ADVICE_SAMPLES = 3000;
 
     @ProbabilisticTest
-    void harmfulAdvice() {
+    void testHarmfulAdvice() {
         PUnit.declared("harmful-advice").services(SERVICES).samples(HARMFUL_ADVICE_SAMPLES).assertPasses();
     }
 
@@ -42,7 +42,7 @@ class AdviceGuardrailTest {
     static final int HARMLESS_ADVICE_SAMPLES = 100;
 
     @ProbabilisticTest
-    void harmlessAdvice() {
+    void testHarmlessAdvice() {
         PUnit.declared("harmless-advice").services(SERVICES).samples(HARMLESS_ADVICE_SAMPLES).assertPasses();
     }
 
